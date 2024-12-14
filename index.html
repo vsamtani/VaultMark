@@ -41,8 +41,8 @@
   <!-- The page itself -->
   <body>
     <h1>coherentpdf.js example</h1>
-    <p>Choose a PDF file, and this web page will use a web worker to rotate the file 10 degrees, and then prompt you to download it.</p>
-    <p>This happens entirely within the browser.</p>
+    <p>Choose a PDF file, and this web page will secure it so that it can't be edited or changed, and then download it for you.</p>
+    <p>This happens entirely within the browser - your PDF isn't sent to the server, and the secured version is created on your computer</p>
     <p id="demo"></p>
     <input type="file" id="file-selector">
     <p><i><b id="progress">Choose a file to begin...</b></i></p>
@@ -89,19 +89,8 @@
     // document.getElementById("demo").innerHTML = 'coherentpdf.js, loaded version: ' + coherentpdf.version();
 
 
-    // create a function to be the worker, complete with the entire coherentpdf-browser script
-
-
-
-
-
-    function workerFunction() {
-
-    // importScripts('cpdf/coherentpdf.browser.js');   
-      
-      
-      
-      
+    // create a function to be the worker, complete with the coherentpdf-browser script
+    function workerFunction() {  
       var self=this;
       self.onmessage = function(e) {
        
@@ -151,38 +140,39 @@
     var blobURL = (window.URL ? URL : webkitURL).createObjectURL(blob, {
       type: 'application/javascript; charset=utf-8'
     });
-    ensureFooIsSet(100000).then(function(){
-  document.getElementById("progress").innerHTML = '(0/4) PDF File loaded from disc. Processing...';
-  var arr = new Uint8Array(lib.foo);
-  // var w = new Worker("cpdfworker.js");
-  var w = new Worker(blobURL);
-  // tell the blob worker our location so it can import scripts
-  w.postMessage({mtype: 'location', url: document.location.origin + document.location.pathname});
-  // give the blob worker the pdf 
-  w.postMessage({mtype: 'pdf', bytes: arr});
-  w.onmessage = function(e)
-  {
-    switch (e.data.mtype)
-    {
-      case 'pdfout':
-        filedownload(e.data.bytes, "download.pdf");
-        document.getElementById("progress").innerHTML += "<br>" + 'Processing finished. Output PDF file downloaded. Reload page to do another file.';
-        w.terminate();
-        break;
-      case 'progress':
-        document.getElementById("progress").innerHTML += "<br>" + e.data.message ;
-        break;
-      case 'pages':
-        document.getElementById("pages").innerHTML = e.data.x;
-        break;
-      case 'creator':
-        document.getElementById("creator").innerHTML = e.data.x;
-        break;
-      case 'producer':
-        document.getElementById("producer").innerHTML = e.data.x;
-        break;
-    }
-  }
-});
+
+    ensureFooIsSet(100000).then(function() {
+      document.getElementById("progress").innerHTML = '(0/4) PDF File loaded from disc. Processing...';
+      var arr = new Uint8Array(lib.foo);
+      // var w = new Worker("cpdfworker.js");
+      var w = new Worker(blobURL);
+      // tell the blob worker our location so it can import scripts
+      w.postMessage({mtype: 'location', url: document.location.origin + document.location.pathname});
+      // give the blob worker the pdf 
+      w.postMessage({mtype: 'pdf', bytes: arr});
+      w.onmessage = function(e)
+      {
+        switch (e.data.mtype)
+        {
+          case 'pdfout':
+            filedownload(e.data.bytes, "download.pdf");
+            document.getElementById("progress").innerHTML += "<br>" + 'Processing finished. Output PDF file downloaded. Reload page to do another file.';
+            w.terminate();
+            break;
+          case 'progress':
+            document.getElementById("progress").innerHTML += "<br>" + e.data.message ;
+            break;
+          case 'pages':
+            document.getElementById("pages").innerHTML = e.data.x;
+            break;
+          case 'creator':
+            document.getElementById("creator").innerHTML = e.data.x;
+            break;
+          case 'producer':
+            document.getElementById("producer").innerHTML = e.data.x;
+            break;
+        }
+      }
+    });
   </script>
 </html>

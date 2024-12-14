@@ -108,7 +108,7 @@
         switch (e.data.mtype)
         {
           case 'location':
-            importScripts(e.data.url + 'cpdf/coherentpdf.browser.js');
+            importScripts(e.data.url + '/cpdf/coherentpdf.browser.js');
           case 'pdf':
             //Load the PDF from the array of bytes handed to us by index.html
             var pdf = coherentpdf.fromMemory(e.data.bytes, "");

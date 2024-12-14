@@ -97,15 +97,18 @@
 
     function workerFunction() {
 
-    importScripts('cpdf/coherentpdf.browser.js');   
+    // importScripts('cpdf/coherentpdf.browser.js');   
       
       
       
       
       var self=this;
       self.onmessage = function(e) {
+       
         switch (e.data.mtype)
         {
+          case 'location':
+            importScripts(e.data.url + 'cpdf/coherentpdf.browser.js');
           case 'pdf':
             //Load the PDF from the array of bytes handed to us by index.html
             var pdf = coherentpdf.fromMemory(e.data.bytes, "");
@@ -153,6 +156,7 @@
   var arr = new Uint8Array(lib.foo);
   // var w = new Worker("cpdfworker.js");
   var w = new Worker(blobURL);
+  w.postMessage({mtype: 'location', url: document.location.protocol + '//' + document.location.host});
   w.postMessage({mtype: 'pdf', bytes: arr});
   w.onmessage = function(e)
   {

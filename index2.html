@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <script>
+    function readFile(input) {
+      let file = input.files[0];
+    
+      let reader = new FileReader();
+    
+      reader.readAsArrayBuffer(file);
+    
+      reader.onload = function() {
+        console.log(reader.result)
+        return reader.result;
+      };
+    
+      reader.onerror = function() {
+        console.log(reader.error);
+      };
+    
+    };
+
+    function processFile() {
+      let arr = readfile()
+    }
+
+    </script>
+  
+</head>
+<body>
+  <p>
+    <input type="file" id="fileSelector" onchange="readFile(this)">
+  </p>
+  <p>
+    <a id="resultLink">Result file</a>
+  </p>
+</body>
+</html>

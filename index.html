@@ -19,7 +19,8 @@
             text-align: justify;
         }
 
-        #drop-area, #pdfs {
+        #drop-area,
+        #pdfs {
             border: 2px dashed #ccc;
             border-radius: 20px;
             width: 480px;
@@ -48,7 +49,7 @@
         }
 
         #pdfs img {
-            width: 75px;
+            width: 45px;
             margin-bottom: 10px;
             margin-right: 10px;
             vertical-align: middle;
@@ -74,30 +75,27 @@
         #fileElem {
             display: none;
         }
-
-
-
     </style>
     <script src="coherentpdf.browser.js"></script>
 </head>
 
 <body>
-    <div class="note"><strong>Select some PDFs, or drag and drop them, in the box above. Each one will be protected to
-            prevent
-            manipulation or editing. Note that all the processing happens in your browser - your files are not sent over
-            the internet.
+    <div class="note"><strong>
+    Select some PDFs, or drag and drop them, in the box below. Each one will be protected to
+    prevent manipulation or editing. Note that all the processing happens in your browser - your files are not sent over
+    the internet.
         </strong></div>
     <div id="drop-area">
         <form class="my-form">
-            <p>Upload multiple files with the file dialog or by dragging and dropping images onto the dashed region</p>
+            <p>Upload multiple files with the file dialog or drag and drop PDFs onto the dashed region</p>
             <input type="file" id="fileElem" multiple accept="application/pdf" onchange="handleFiles(this.files)">
             <label class="button" for="fileElem">Select some files</label>
         </form>
         <!--  <progress id="progress-bar" max=100 value=0></progress> -->
         <div id="gallery"></div>
-       
+
     </div>
- <div id="pdfs" class="hidden"></div>
+    <div id="pdfs" class="hidden"></div>
 </body>
 <script>
     // ************************ Drag and drop ***************** //
@@ -143,12 +141,12 @@
     }
 
     function formatFileName(fN, max = 40) {
-        if (max<11) {max = 11}; 
+        if (max < 11) { max = 11 };
         if (fN.length < max) {
             return fN;
         } else {
             let extensionDelimiterIndex = fN.lastIndexOf('.');
-            let middleRemovedName = `${fN.substring(0, max-10)}...${fN.substring(extensionDelimiterIndex - 3)}`
+            let middleRemovedName = `${fN.substring(0, max - 10)}...${fN.substring(extensionDelimiterIndex - 3)}`
             return middleRemovedName;
         }
     }
@@ -179,6 +177,7 @@
             .then(processBuffer)
 
 
+
         function processBuffer(b) {
             b = new Uint8Array(b);
             let permissions = [coherentpdf.noAnnot, coherentpdf.noAssemble, 2, coherentpdf.noEdit, coherentpdf.noExtract, coherentpdf.noForms];
@@ -187,39 +186,77 @@
             while (oPassword.length < 30) {
                 oPassword += Math.random().toString(36).slice(2, 7);
             };
-            let uPassword = "";
+            let uPassword = '';
+
 
             let pdf = coherentpdf.fromMemory(b, "");
             coherentpdf.setFast();
-            let pdfOut = coherentpdf.toMemoryEncryptedExt(pdf, encryption, permissions, oPassword, uPassword, false, false, true, false, true);
-            // coherentpdf.deletePdf(pdf);
+            console.log(coherentpdf.isEncrypted(pdf));
+            coherentpdf.decryptPdf(pdf, "");
+            let pdfOut_1 = coherentpdf.toMemoryEncrypted(pdf, encryption, permissions, oPassword, uPassword, false, false);
+
+            let pdfOut_2 = coherentpdf.toMemory(pdf, false, false);
+
+            coherentpdf.deletePdf(pdf);
+            [pdfOut_1, pdfOut_2].forEach((pdf) => {var p = coherentpdf.fromMemory(pdf,"");
+            console.log("p is encrypted: "+coherentpdf.isEncrypted(p) + "encryption kind ("+encryption+")= " + coherentpdf.encryptionKind(p));
+            coherentpdf.deletePdf(p)})
+           
 
             // express the result PDF as a data URI, and embed in the document
-            let r = new FileReader();
-            r.readAsDataURL(new Blob([pdfOut], { type: 'application/octet-stream' }));
-            r.onloadend = function () {
-                let p = document.createElement('p');
-                let a = document.createElement('a');
-                let img = document.createElement('img');
-                let pdfs = document.getElementById("pdfs");
+            let r1 = new FileReader();
+            r1.readAsDataURL(new Blob([pdfOut_1], { type: 'application/octet-stream' }));
+            r1.onloadend = function () { displayPdf(r1, true); };
 
-                a.appendChild(img);
-                p.appendChild(a)
-                pdfs.appendChild(p);
-                pdfs.classList.remove("hidden");
+            let r2 = new FileReader();
+            r2.readAsDataURL(new Blob([pdfOut_2], { type: 'application/octet-stream' }));
+            r2.onloadend = function () { displayPdf(r2, false) };
+        }
+        // function () {
+        //     let p = document.createElement('p');
+        //     let a = document.createElement('a');
+        //     let img = document.createElement('img');
+        //     let pdfs = document.getElementById("pdfs");
 
-                img.alt = formatFileName(fn);
-                img.src = pdfIcon;
+        //     a.appendChild(img);
+        //     p.appendChild(a)
+        //     pdfs.appendChild(p);
+        //     pdfs.classList.remove("hidden");
 
-                a.download = formatFileName("PROTECTED " + fn);
-                // a.innerHTML = formatFileName(fn);
-                a.href = r.result;
-                a.appendChild(document.createTextNode(a.download));
+        //     img.alt = formatFileName(fn);
+        //     img.src = pdfIcon;
 
-                // a.click();
-            }
+        //     a.download = formatFileName((protected ? "PROTECTED" : "UNPROTECTED") + " " + fn);
+        //     // a.innerHTML = formatFileName(fn);
+        //     a.href = r.result;
+        //     a.appendChild(document.createTextNode(a.download));
+
+        //     // a.click();
+
+
+
+        function displayPdf(r, protected) {
+            let p = document.createElement('p');
+            let a = document.createElement('a');
+            let img = document.createElement('img');
+            let pdfs = document.getElementById("pdfs");
+
+            a.appendChild(img);
+            p.appendChild(a)
+            pdfs.appendChild(p);
+            pdfs.classList.remove("hidden");
+
+            img.alt = formatFileName(fn);
+            img.src = pdfIcon;
+            img.id = "pdfIcon";
+
+            a.download = formatFileName((protected ? "PROTECTED" : "UNPROTECTED") + " " + fn);
+            // a.innerHTML = formatFileName(fn);
+            a.href = r.result;
+            a.appendChild(document.createTextNode(a.download));
         }
     }
+
 
 
 

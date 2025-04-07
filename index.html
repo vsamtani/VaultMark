@@ -28,7 +28,8 @@
             padding: 20px;
         }
 
-        #pdfs.hidden {
+        #pdfs.hidden,
+        div.hidden {
             display: none;
         }
 
@@ -81,9 +82,10 @@
 
 <body>
     <div class="note"><strong>
-    Select some PDFs, or drag and drop them, in the box below. Each one will be protected to
-    prevent manipulation or editing. Note that all the processing happens in your browser - your files are not sent over
-    the internet.
+            Select some PDFs, or drag and drop them, in the box below. Each one will be protected to
+            prevent manipulation or editing. Note that all the processing happens in your browser - your files are not
+            sent over
+            the internet.
         </strong></div>
     <div id="drop-area">
         <form class="my-form">
@@ -181,84 +183,73 @@
         function processBuffer(b) {
             b = new Uint8Array(b);
             let permissions = [coherentpdf.noAnnot, coherentpdf.noAssemble, 2, coherentpdf.noEdit, coherentpdf.noExtract, coherentpdf.noForms];
-            let encryption = coherentpdf.aes256bitisofalse;
+            let encryption = coherentpdf.aes256bitisotrue;
             let oPassword = "";
             while (oPassword.length < 30) {
                 oPassword += Math.random().toString(36).slice(2, 7);
             };
+            // uPassword is shorter, without confusable characters, 
+            // and has regular hyphens to make it more user-friendly
             let uPassword = '';
-
+            while (uPassword.length < 40) {
+                uPassword += Math.random().toString(36).slice(2, 7);
+                uPassword = uPassword.replace(/[i1l5s0o2z]/g, '');
+            };
+            uPassword = uPassword.slice(0, 5) + "-" + uPassword.slice(5, 10) + "-" + uPassword.slice(10, 15)
+            console.log(uPassword);
 
             let pdf = coherentpdf.fromMemory(b, "");
             coherentpdf.setFast();
-            console.log(coherentpdf.isEncrypted(pdf));
+            let orig_encrypted = (coherentpdf.isEncrypted(pdf));
             coherentpdf.decryptPdf(pdf, "");
-            let pdfOut_1 = coherentpdf.toMemoryEncrypted(pdf, encryption, permissions, oPassword, uPassword, false, false);
 
-            let pdfOut_2 = coherentpdf.toMemory(pdf, false, false);
+            // owner password but no user password
+            let pdfOut_1 = coherentpdf.toMemoryEncrypted(pdf, encryption, permissions, oPassword, '', false, false);
+            displayPdf(pdfOut_1, "PROTECTED");
+
+            if (orig_encrypted) {
+                let pdfOut_2 = coherentpdf.toMemory(pdf, false, false);
+                displayPdf(pdfOut_2, "UNPROTECTED");
+            };
+
+            // owner password and different user password
+            let pdfOut_3 = coherentpdf.toMemoryEncrypted(pdf, encryption, permissions, oPassword, uPassword, false, false);
+            displayPdf(pdfOut_3, "PASSWORD");
 
             coherentpdf.deletePdf(pdf);
-            [pdfOut_1, pdfOut_2].forEach((pdf) => {var p = coherentpdf.fromMemory(pdf,"");
-            console.log("p is encrypted: "+coherentpdf.isEncrypted(p) + "encryption kind ("+encryption+")= " + coherentpdf.encryptionKind(p));
-            coherentpdf.deletePdf(p)})
-           
-
-            // express the result PDF as a data URI, and embed in the document
-            let r1 = new FileReader();
-            r1.readAsDataURL(new Blob([pdfOut_1], { type: 'application/octet-stream' }));
-            r1.onloadend = function () { displayPdf(r1, true); };
-
-            let r2 = new FileReader();
-            r2.readAsDataURL(new Blob([pdfOut_2], { type: 'application/octet-stream' }));
-            r2.onloadend = function () { displayPdf(r2, false) };
-        }
-        // function () {
-        //     let p = document.createElement('p');
-        //     let a = document.createElement('a');
-        //     let img = document.createElement('img');
-        //     let pdfs = document.getElementById("pdfs");
-
-        //     a.appendChild(img);
-        //     p.appendChild(a)
-        //     pdfs.appendChild(p);
-        //     pdfs.classList.remove("hidden");
-
-        //     img.alt = formatFileName(fn);
-        //     img.src = pdfIcon;
-
-        //     a.download = formatFileName((protected ? "PROTECTED" : "UNPROTECTED") + " " + fn);
-        //     // a.innerHTML = formatFileName(fn);
-        //     a.href = r.result;
-        //     a.appendChild(document.createTextNode(a.download));
-
-        //     // a.click();
 
 
 
-        function displayPdf(r, protected) {
-            let p = document.createElement('p');
-            let a = document.createElement('a');
-            let img = document.createElement('img');
-            let pdfs = document.getElementById("pdfs");
+            function displayPdf(p, prefix) {
 
-            a.appendChild(img);
-            p.appendChild(a)
-            pdfs.appendChild(p);
-            pdfs.classList.remove("hidden");
+                let r = new FileReader();
+                r.readAsDataURL(new Blob([p], { type: 'application/octet-stream' }));
+                r.onloadend = function () {
 
-            img.alt = formatFileName(fn);
-            img.src = pdfIcon;
-            img.id = "pdfIcon";
+                    let p = document.createElement('p');
+                    let a = document.createElement('a');
+                    let img = document.createElement('img');
+                    let pdfs = document.getElementById("pdfs");
 
-            a.download = formatFileName((protected ? "PROTECTED" : "UNPROTECTED") + " " + fn);
-            // a.innerHTML = formatFileName(fn);
-            a.href = r.result;
-            a.appendChild(document.createTextNode(a.download));
+
+                    a.appendChild(img);
+                    p.appendChild(a)
+                    pdfs.appendChild(p);
+
+                    pdfs.classList.remove("hidden");
+
+                    img.alt = formatFileName(fn);
+                    img.src = pdfIcon;
+                    img.id = "pdfIcon";
+
+                    a.download = formatFileName(prefix + " " + fn);
+                    // a.innerHTML = formatFileName(fn);
+                    a.href = r.result;
+                    a.appendChild(document.createTextNode(a.download));
+                }
+            }
         }
     }
-
-
-
 
 </script>
 

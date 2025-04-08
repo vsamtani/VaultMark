@@ -1,4 +1,23 @@
 <!DOCTYPE html>
+<!--
+    PDFProtect
+    Copyright (C) 2025 Vijay Samtani
+
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU Affero General Public License as published
+    by the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU Affero General Public License for more details.
+
+    You should have received a copy of the GNU Affero General Public License
+    along with this program.  If not, see <https://www.gnu.org/licenses/>.
+-->
+
+
 <html>
 
 <head>
@@ -50,7 +69,7 @@
         }
 
         #pdfs img {
-            width: 45px;
+            width: 35px;
             margin-bottom: 10px;
             margin-right: 10px;
             vertical-align: middle;
@@ -188,7 +207,7 @@
             while (oPassword.length < 30) {
                 oPassword += Math.random().toString(36).slice(2, 7);
             };
-            // uPassword is shorter, without confusable characters, 
+            // uPassword is shorter, without confusable characters,
             // and has regular hyphens to make it more user-friendly
             let uPassword = '';
             while (uPassword.length < 40) {
@@ -216,7 +235,107 @@
             let pdfOut_3 = coherentpdf.toMemoryEncrypted(pdf, encryption, permissions, oPassword, uPassword, false, false);
             displayPdf(pdfOut_3, "PASSWORD");
 
+            // Now modifying the original pdf
+
+            // Go through the pdf and define ranges of pages with the same dimensions
+
+            let ranges = new Map();
+            for (let pg = 1; pg <= coherentpdf.pages(pdf); pg++) {
+                let mb = coherentpdf.getMediaBox(pdf, pg);
+                let width = mb[1] - mb[0];
+                let height = mb[3] - mb[2];
+                let sizespec = width.toString() + "x" + height.toString();
+                if (ranges.has(sizespec)) {
+                    let arr = ranges.get(sizespec);
+                    arr[1].push(pg);
+                    ranges.set(sizespec, arr);
+                } else {
+                    ranges.set(sizespec, [mb, [pg]]);
+                }
+                console.log(ranges);
+
+            };
+
+            console.log("wait");
+
+            // Now go through the ranges and deal with them each as a group
+
+            for (const r of ranges) {
+                mb = r[1][0];
+                let pdfrange = r[1][1];
+                let width = mb[1] - mb[0];
+                let height = mb[3] - mb[2];
+
+
+                // Scale the page down
+                let sc = 0.95;
+                coherentpdf.scaleContents(pdf, pdfrange, coherentpdf.posCentre, width / 2, height / 2, sc);
+
+                let frame_width = width * (1 - sc) / 2;
+                let frame_height = height * (1 - sc) / 2;
+
+
+                // Add the protective marking text
+
+                // addText(metrics, pdf, range, 
+                // text, 
+                // anchor, p1, p2, 
+                // linespacing, bates, 
+                // font, fontsize, 
+                // r, g, b, 
+                // underneath, 
+                // relative_to_cropbox, 
+                // outline, 
+                // opacity, 
+                // justification,
+                //  midline, topline, 
+                // filename, 
+                // linewidth, 
+                // embed_fonts)
+
+                coherentpdf.addText(false, pdf, pdfrange,
+                    "Printed by addText for Vijay %d-%b-%Y %T",
+                    coherentpdf.bottom, -frame_height / 2, 0.0,
+                    1.0, 1,
+                    coherentpdf.helveticaBold, 10.0,
+                    0.137, 0.157, 0.188,
+                    false,
+                    false,
+                    false,
+                    1.0,
+                    coherentpdf.centreJustify,
+                    true, false,
+                    "",
+                    1.0,
+                    false);
+
+
+                coherentpdf.addText(false, pdf, pdfrange,
+                    "Printed by addText for Vijay %d-%b-%Y %T",
+                    coherentpdf.top, -frame_height / 2, 0.0,
+                    1.0, 1,
+                    coherentpdf.helveticaBold, 10.0,
+                    0.137, 0.157, 0.188,
+                    false,
+                    false,
+                    false,
+                    1.0,
+                    coherentpdf.centreJustify,
+                    true, false,
+                    "",
+                    1.0,
+                    false);
+            }
+
+
+            let pdfOut_4 = coherentpdf.toMemoryEncrypted(pdf, encryption, permissions, oPassword, '', false, false);
+            displayPdf(pdfOut_4, "MARKED");
+
+
+
+
             coherentpdf.deletePdf(pdf);
+
 
 
 

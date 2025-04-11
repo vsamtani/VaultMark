@@ -23,83 +23,7 @@
 <html>
 
 <head>
-    <style>
-        body {
-            font-family: sans-serif;
-        }
-
-        a {
-            color: #369;
-        }
-
-        .note {
-            width: 500px;
-            margin: 50px auto;
-            font-size: 1.1em;
-            color: #333;
-            text-align: justify;
-        }
-
-        #pdfDropArea,
-        #fileDropArea,
-        #pdfs {
-            border: 2px dashed #ccc;
-            border-radius: 20px;
-            width: 480px;
-            margin: 50px auto;
-            padding: 20px;
-        }
-
-        #pdfs.hidden,
-        div.hidden {
-            display: none;
-        }
-
-        #pdfDropArea.highlight,
-        #fileDropArea.highlight {
-            border-color: purple;
-        }
-
-        p {
-            margin-top: 0;
-        }
-
-        .my-form {
-            margin-bottom: 10px;
-        }
-
-        #gallery {
-            margin-top: 10px;
-        }
-
-        #pdfs img {
-            width: 35px;
-            margin-bottom: 10px;
-            margin-right: 10px;
-            vertical-align: middle;
-        }
-
-        #pdfs a {
-            text-decoration: none;
-        }
-
-        .button {
-            display: inline-block;
-            padding: 10px;
-            background: #ccc;
-            cursor: pointer;
-            border-radius: 5px;
-            border: 1px solid #ccc;
-        }
-
-        .button:hover {
-            background: #ddd;
-        }
-
-        #fileElem {
-            display: none;
-        }
-    </style>
+    <link rel="stylesheet" href="style.css">
     <script src="coherentpdf.browser.js"></script>
     <script src="zip-full.js"></script>
 </head>
@@ -187,6 +111,14 @@
 
     function handleFiles(files) {
         // NB we can get here from the file select dialog, or from drag and drop events
+
+        // We need to do more sophisticated things depending on 
+        // what files have been dropped.
+
+        // PDFs - protect with ownerpw, encrypt with userpw and ownerpw, protectively mark
+        // Any file - add to a zip with a pw
+        // A zip file - decrypt if possible
+
         files = [...files];
         files.forEach((f) => { isPdf(f) && protectPdf(f) });
         files.forEach((f) => { protectByZip(f) });

@@ -1,0 +1,556 @@
+<!DOCTYPE html>
+<!--
+    PDFProtect
+    Copyright (C) 2025 Vijay Samtani
+    Acknowledgements:
+    - John Whittington: https://github.com/coherentgraphics/coherentpdf.js
+
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU Affero General Public License as published
+    by the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU Affero General Public License for more details.
+
+    You should have received a copy of the GNU Affero General Public License
+    along with this program.  If not, see <https://www.gnu.org/licenses/>.
+-->
+
+
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="style.css">
+    <script src="coherentpdf.browser.js"></script>
+    <script src="zip-full.js"></script>
+</head>
+
+<body>
+    <div class="note"><strong>
+            Select some PDFs, or drag and drop them, in the box below. Each one will be protected to
+            prevent manipulation or editing. Note that all the processing happens in your browser - your files are not
+            sent over the internet.
+        </strong></div>
+    <div id="fileDropArea" class="DropArea">
+        <form class="my-form">
+            <p>Upload multiple files with the file dialog or drag and drop files onto the dashed region</p>
+            <input type="file" id="fileElem" accept="application/pdf, application/zip, application/x-zip-compressed"
+                onchange="handleFiles(this.files)">
+            <label class="button" for="fileElem">Select some PDFs</label>
+        </form>
+    </div>
+    <!-- <div id="progress"></div> -->
+    <div>
+        <ol class="hidden rectangle filelist" id="inputFiles"></ol>
+
+    </div>
+    <div>
+        <ol class="hidden rectangle filelist" id="outputFiles"></ol>
+
+    </div>
+    <svg id="fileIconTemplate" class="hidden" viewBox="0 0 48 48">
+        <path d="M30,1H9A4,4,0,0,0,5,5V43a4,4,0,0,0,4,4H39a4,4,0,0,0,4-4V14Z" fill="rgb(162,162,169)" />
+        <polygon points="30 14 43 14 30 1 30 14" fill="rgb(215,215,218)" />
+        <rect x="11" y="20" width="26" height="2" fill="rgb(20, 21, 26)" />
+        <rect x="11" y="26" width="26" height="2" fill="rgb(20, 21, 26)" />
+        <rect x="11" y="32" width="14" height="2" fill="rgb(20, 21, 26)" />
+    </svg>
+</body>
+
+
+<script>
+    // Icon
+    let fileIcon = 'data:image/svg+xml;base64,PHN2ZyBjbGFzcz0iaWNvbiBpY29uLS1sZyBtYXJnaW4tcmlnaHQtMnhzIiB2aWV3Qm94PSIwIDAgNDggNDgiPgogIDxwYXRoIGQ9Ik0zMCwxSDlBNCw0LDAsMCwwLDUsNVY0M2E0LDQsMCwwLDAsNCw0SDM5YTQsNCwwLDAsMCw0LTRWMTRaIiBmaWxsPSJyZ2IoMTYyLDE2MiwxNjkpIi8+CiAgPHBvbHlnb24gcG9pbnRzPSIzMCAxNCA0MyAxNCAzMCAxIDMwIDE0IiBmaWxsPSJyZ2IoMjE1LDIxNSwyMTgpIi8+CiAgPHJlY3QgeD0iMTEiIHk9IjIwIiB3aWR0aD0iMjYiIGhlaWdodD0iMiIgZmlsbD0icmdiKDIwLCAyMSwgMjYpIi8+CiAgPHJlY3QgeD0iMTEiIHk9IjI2IiB3aWR0aD0iMjYiIGhlaWdodD0iMiIgZmlsbD0icmdiKDIwLCAyMSwgMjYpIi8+CiAgPHJlY3QgeD0iMTEiIHk9IjMyIiB3aWR0aD0iMTQiIGhlaWdodD0iMiIgZmlsbD0icmdiKDIwLCAyMSwgMjYpIi8+Cjwvc3ZnPgo='
+
+
+    // Drag and drop functions
+    let fileDropArea = document.getElementById("fileDropArea");
+
+    // Prevent default drag behaviours, and handle drag events
+    ["dragenter", "dragover", "dragleave", "drop"].forEach((eventName) => {
+        window.addEventListener(eventName, preventDefaults, false);
+        window.addEventListener(eventName, deactivateDropZone, false);
+        fileDropArea.addEventListener(eventName, preventDefaults, false);
+        fileDropArea.addEventListener(eventName, handleDrag, false)
+    });
+
+    // Handle dropped files
+
+
+    function preventDefaults(e) {
+        e.preventDefault();
+        e.stopPropagation();
+    }
+
+    function activateDropZone(e) {
+        fileDropArea.classList.add("highlight");
+        fileDropArea.addEventListener("drop", handleDrop, false);
+        e.dataTransfer.dropEffect = 'copy';
+    };
+
+    function deactivateDropZone(e) {
+        fileDropArea.classList.remove("highlight");
+        fileDropArea.removeEventListener("drop", handleDrop, false);
+        e.dataTransfer.dropEffect = 'none';
+    };
+
+    function handleDrag(e) {
+        var draggedItems = [...e.dataTransfer.items];
+        (draggedItems.length == 1 && (
+            draggedItems[0].type == 'application/x-zip-compressed' ||
+            draggedItems[0].type == 'application/zip' ||
+            draggedItems[0].type == 'application/pdf' ||
+            true
+        )) ? activateDropZone(e) : deactivateDropZone(e);
+    };
+
+    function handleDrop(e) {
+        deactivateDropZone(e);
+        var dt = e.dataTransfer;
+        var files = dt.files;
+        handleFiles(files);
+    }
+
+    function handleFiles(files) {
+        // NB we can get here from the file select dialog, or from drag and drop events
+
+        // We need to do more sophisticated things depending on 
+        // what files have been dropped.
+
+        // PDFs - protect with ownerpw, encrypt with userpw and ownerpw, protectively mark
+        // Any file - add to a zip with a pw
+        // A zip file - decrypt if possible
+
+        // For each file in files
+        //  - work out what kind of file it is
+        // -  PDF, if not user-encrypted
+        // - Zip, is it encrypted?
+        // - otherwise
+
+        files = [...files];
+
+        // files.forEach((f) => { isPdf(f) && protectPdf(f) });
+        // files.forEach((f) => { protectByZip(f) });
+
+        files.forEach(async (file) => {
+            const storedFileID = await model.storeFile(file);
+            processStoredFile(storedFileID);
+        });
+    };
+
+    async function processStoredFile(storedFileID, inputPassword = "") {
+
+        // const storedFileID = await model.storeFile(file);
+
+        let f = await model.getFile(storedFileID).obj;
+        let isZip = (f.type == 'application/zip' || f.type == 'application/x-zip-compressed');
+        let isPDF = (f.type == 'application/pdf');
+        let fName = f.name;
+
+
+
+
+
+        // let isEncryptedPDF;
+        // let canDecryptPDF;
+        if (isPDF) {
+            // check if it's a valid PDF
+            // let f = await model.getFile(storedFileID).obj;
+            var pdfBuffer = new Uint8Array(await f.arrayBuffer());
+            try {
+                // if this succeeds, it's a PDF
+                var pdf = coherentpdf.fromMemory(pdfBuffer, "");
+
+            } catch {
+                isPDF = false;
+            }
+        }
+        if (isPDF) {
+            // check if it's password-protected
+            // if it only has an owner-password, strip that out
+            let orig_encrypted = (coherentpdf.isEncrypted(pdf));
+            var isEncryptedPDF = false;
+            var isProtectedPDF = false;
+            var canDecryptPDF = true;
+            if (orig_encrypted) {
+                try {
+                    coherentpdf.decryptPdf(pdf, "");
+                    isProtectedPDF = true;
+                    canDecryptPDF = true;
+                } catch {
+                    isEncryptedPDF = true;
+                    canDecryptPDF = false;
+                }
+            }
+
+            (orig_encrypted && !isEncryptedPDF) && console.log("Owner protection can be removed");
+            coherentpdf.deletePdf(pdf);
+
+        }
+
+
+        if (isZip) {
+            // only check if it's the right mime-type
+            // Because Office files will pass testZip()
+            // but they can't be encrypted like normal zip files.
+            let zipTest = await testZip(storedFileID);
+            isZip = zipTest.valid;
+            var isEncryptedZip = zipTest.encrypted;
+        }
+
+        // Ask for a password to try
+        const canDecryptZip = (isZip && isEncryptedZip ? await isZipDecryptable(storedFileID, inputPassword) : true);
+
+        if (isZip && isEncryptedZip && canDecryptZip) {
+            // Decrypt immediately
+            const decryptedZipID = await cryptZip(storedFileID, true, false, inputPassword);
+            // var dZURL = URL.createObjectURL(await model.getFile(decryptedZipID).obj);
+            await displayFile(decryptedZipID, "PASSWORD-REMOVED " + fName, fName + " opened successfully with password: " + inputPassword);
+        };
+        if (isZip && !isEncryptedZip) {
+            let pw = generatePassword();
+            const encryptedZipID = await cryptZip(storedFileID, true, true, pw);
+            await displayFile(encryptedZipID, "PASSWORD-PROTECTED " + fName, "Password for this Zip file: " + pw);
+            // var eZURL = URL.createObjectURL(await model.getFile(encryptedZipID).obj);
+        }
+
+        if (isZip && isEncryptedZip && !canDecryptZip) {
+            // It's encrypted but we can't decrypt it - bad password
+            // Display it, with a password field to fill in
+            // When a password is supplied, come back to this routine and retry
+            await displayFile(storedFileID, fName, "Zip file is password-protected. Cannot decrypt with " + (inputPassword == "" ? "blank password." : "password: " + inputPassword), false, true, true);
+
+        }
+
+        if (isPDF && !isEncryptedPDF) {
+            // password-protect it immediately
+            // const encryptedZipID = cryptPDF(blah);
+            // display that
+            // offer options to protectively mark it
+            let pw = generatePassword();
+            const encryptedPDFID = await cryptPDF(storedFileID, "", pw);
+            await displayFile(encryptedPDFID, "PASSWORD-PROTECTED " + fName, "Password for this PDF file: " + pw);
+        }
+        if (isPDF && !isEncryptedPDF && isProtectedPDF) {
+            // strip out the owner protections
+            const unprotectedPDFID = await cryptPDF(storedFileID, "", "");
+            await displayFile(unprotectedPDFID, "UNPROTECTED " + fName, "Protections removed.");
+        }
+        if (isPDF && isEncryptedPDF) {
+            // display it, ask for a password, attach a handler to try decrypting it
+            console.log("User-Encrypted PDF");
+            const decryptedPDFID = await cryptPDF(storedFileID, inputPassword, "");
+            if (decryptedPDFID === null) {
+                // didn't decrypt with pw
+                await displayFile(storedFileID, fName, "PDF file is password-protected. Cannot decrypt with " + (inputPassword == "" ? "blank password." : "password: " + inputPassword), false, true);
+
+            } else {
+                await displayFile(decryptedPDFID, "PASSWORD-REMOVED " + fName, "Password used: " + inputPassword);
+            }
+        }
+
+        if (isPDF && isEncryptedPDF) {
+            // Decrypt it immediately
+        }
+
+
+        if (!isPDF && !isZip) {
+            // ordinary file, chuck it into a zip
+            let pw = generatePassword();
+            const encryptedZipID = await cryptZip(storedFileID, false, true, pw);
+            await displayFile(encryptedZipID, "PASSWORD-PROTECTED " + fName + ".zip", "Password for this Zip file: " + pw);
+        }
+    }
+
+
+
+    function generatePassword() {
+        // Pattern abcdef-123456-pqrtuv
+        // Easy to type on a touchscreen keyboard
+        // Easy to read out
+        // No easily confused characters (losz)
+        let pw_alpha = "";
+        let pw_num = "";
+        while (pw_alpha.length < 15) {
+            pw_alpha += Math.random().toString(36).slice(2, 7);
+            pw_alpha = pw_alpha.replace(/[0123456789losz]/g, '');
+        };
+        while (pw_num.length < 7) {
+            pw_num += Math.random().toString(10).slice(2, 7);
+            pw_num = pw_num.replace(/[01]/g, '');
+        }
+        return pw_alpha.slice(0, 6) + "-" + pw_num.slice(0, 6) + "-" + pw_alpha.slice(6, 12);
+    }
+
+
+    async function testZip(storedFileID) {
+        const entries = await model.getEntriesFromStoredFile(storedFileID);
+        if (entries === null) { return ({ valid: false, encrypted: null }) } else {
+            return ({ valid: true, encrypted: entries.some((e) => !e.directory && e.encrypted) });
+        }
+    }
+
+    async function isZipDecryptable(storedFileID, password) {
+        const entries = await model.getEntriesFromStoredFile(storedFileID);
+
+        for (e in entries) {
+            if (entries[e].encrypted) {
+                // if any entry fails, we can't decrypt
+                try {
+                    await model.getEntryContent(entries[e], { password: password, checkPasswordOnly: true });
+                } catch (e) {
+                    return false;
+                }
+            }
+        }
+        // if we got here with no errors
+        return true;
+    }
+
+    async function cryptZip(storedFileID, isZip, encrypt = true, password, options = {}) {
+
+        const fName = await model.getFile(storedFileID)
+        const newZipFileID = await model.createEmptyZip();
+        let passwordOptions = Object.assign({ ...options }, { password: password });
+        const writingOptions = encrypt ? passwordOptions : options;
+        const readingOptions = encrypt ? options : passwordOptions;
+        let dirOptions = Object.assign({ ...options }, { directory: true });
+
+        if (isZip) {
+            const entries = await model.getEntriesFromStoredFile(storedFileID, options);
+            for (e in entries) {
+                await transferEntry(entries[e]);
+            };
+        } else {
+            // if it's just a plain old file
+            let blob = model.getFile(storedFileID).obj
+            let f = new File([blob], blob.name);
+            await model.addFileToZip(f, newZipFileID, writingOptions);
+        }
+        await model.closeZip(newZipFileID);
+        return newZipFileID;
+
+        async function transferEntry(e) {
+            if (!e.directory) {
+                let entryBlob = await model.getEntryContent(e, readingOptions);
+                let f = new File([entryBlob], e.filename);
+                return model.addFileToZip(f, newZipFileID, writingOptions);
+            } else {
+                return model.addDirToZip(e.filename, newZipFileID, dirOptions)
+            };
+        };
+    }
+
+    async function cryptPDF(storedFileID, decryption_pw = "", encryption_pw = "", encrypt = true) {
+        // will try to decrypt first
+        // then encrypt 
+        // will always try to set owner permissions with a random password.
+        let permissions = [coherentpdf.noAnnot, coherentpdf.noAssemble, coherentpdf.noCopy, coherentpdf.noEdit, coherentpdf.noExtract, coherentpdf.noForms];
+        let encryption = coherentpdf.aes256bitisotrue;
+        let f = await model.getFile(storedFileID).obj;
+        let pdfBuffer = new Uint8Array(await f.arrayBuffer());
+        let pdf = coherentpdf.fromMemory(pdfBuffer, "");
+        coherentpdf.setFast();
+        let decryptionSuccess;
+        try {
+            coherentpdf.decryptPdf(pdf, decryption_pw);
+            decryptionSuccess = true;
+        } catch (error) {
+            decryptionSuccess = false;
+        };
+        try {
+            coherentpdf.decryptPdf(pdf, "");
+            decryptionSuccess = true;
+        } catch (error) {
+            decryptionSuccess = false;
+
+        }
+        if (!decryptionSuccess) return null;
+
+        var pdfOut = coherentpdf.toMemoryEncrypted(pdf, encryption, permissions, generatePassword(), encryption_pw, false, false);
+        pdfBlob = new Blob([pdfOut], { type: 'application/octet-stream' });
+        coherentpdf.deletePdf(pdf);
+        return await model.storeFile(pdfBlob);
+
+    }
+
+    async function displayFile(storedFileID, displayName, subText = "", downloadable = true, requestPassword = false, inputFile = false) {
+        let fileList = document.getElementById((downloadable ? "outputFiles" : "inputFiles" ));
+
+        // construct html elements
+
+
+        let li = document.createElement('li');
+
+
+        let svg_template = document.getElementById("fileIconTemplate");
+        let svg = svg_template.cloneNode(true);
+        svg.classList.remove("hidden");
+        svg.classList.add("fileIcon");
+        svg.id = "fileIcon_" + storedFileID;
+
+
+        // img.alt = "zip";
+        // img.src = 'data:image/svg+xml,%3Csvg%20class%3D%22icon%20icon--lg%20margin-right-2xs%22%20viewBox%3D%220%200%2048%2048%22%3E%3Cpath%20d%3D%22M30%2C1H9A4%2C4%2C0%2C0%2C0%2C5%2C5V43a4%2C4%2C0%2C0%2C0%2C4%2C4H39a4%2C4%2C0%2C0%2C0%2C4-4V14Z%22%20fill%3D%22rgb(162%2C162%2C169)%22%2F%3E%3Cpolygon%20points%3D%2230%2014%2043%2014%2030%201%2030%2014%22%20fill%3D%22rgb(215%2C215%2C218)%22%2F%3E%3Crect%20x%3D%2211%22%20y%3D%2220%22%20width%3D%2226%22%20height%3D%222%22%20fill%3D%22rgb(20%2C%2021%2C%2026)%22%2F%3E%3Crect%20x%3D%2211%22%20y%3D%2226%22%20width%3D%2226%22%20height%3D%222%22%20fill%3D%22rgb(20%2C%2021%2C%2026)%22%2F%3E%3Crect%20x%3D%2211%22%20y%3D%2232%22%20width%3D%2214%22%20height%3D%222%22%20fill%3D%22rgb(20%2C%2021%2C%2026)%22%2F%3E%3C%2Fsvg%3E';
+        // img.id = "pdfIcon";
+
+        if (downloadable) {
+            let a = document.createElement('a');
+            a.appendChild(svg);
+            li.appendChild(a)
+            a.download = displayName;
+            a.href = URL.createObjectURL(await model.getFile(storedFileID).obj);
+            a.id = "storedFileID_link_" + storedFileID;
+        } else {
+            li.appendChild(svg);
+        }
+        // a.innerHTML = formatFileName(fn);
+        // a.href = r.result;
+
+        li.appendChild(document.createTextNode(displayName));
+        li.appendChild(document.createElement("br"));
+        li.appendChild(document.createTextNode(subText));
+
+        if (requestPassword) {
+            pw = document.createElement("input");
+            pw.type = "text";
+            pw.label = "Hello"
+            pw.id = "storedFileID_pw_" + storedFileID;
+            pw.addEventListener("change", () => { console.log("password entered for " + storedFileID); processStoredFile(storedFileID, pw.value); pw.value = ""; });
+
+            li.appendChild(pw);
+        }
+
+        let btnMarkPDF = document.createElement("button");
+        btnMarkPDF.appendChild(document.createTextNode("Mark"));
+        btnMarkPDF.addEventListener("click", () => { console.log("button clicked");  });
+        li.appendChild(btnMarkPDF);
+
+        let btnStampPDF = document.createElement("button");
+        btnStampPDF.appendChild(document.createTextNode("Stamp"));
+        btnStampPDF.addEventListener("click", () => { console.log("button clicked");  });
+        li.appendChild(btnStampPDF);
+        
+
+
+
+        let existing_li = document.getElementById("storedFileID_li_" + storedFileID);
+        (existing_li !== null) && (existing_li.remove());
+
+        li.id = "storedFileID_li_" + storedFileID;
+        let n = fileList.firstChild;
+        fileList.insertBefore(li, n);
+        fileList.classList.remove("hidden");
+
+
+        // Once it's displayed, ensure it has a handler for any further processing
+        // Handlers could be:
+        // - password protect me (zip or pdf)
+        // - decrypt me (with a password) (zip or pdf)
+        // - protectively mark me (pdf)
+        // - put me in a password-protected zip (any file)
+
+    }
+
+
+
+
+
+    const model = (() => {
+        // let zipWriter;
+        let fileStore = new Map();
+
+        return {
+            storeFile(file) {
+                // let blob = await file.arrayBuffer();
+                let newFileID = 1 + fileStore.keys().reduce((a, b) => { return a > b ? a : b }, 0);
+                fileStore.set(newFileID, { obj: file, type: 'file' });
+                return newFileID;
+            },
+            getFile(fileID) {
+                // let blob = await file.arrayBuffer();
+                return fileStore.get(fileID);
+            },
+
+            async getEntriesFromStoredFile(zipFileID, options) {
+                try {
+                    return await (new zip.ZipReader(new zip.BlobReader(fileStore.get(zipFileID).obj))).getEntries(options);
+                } catch {
+                    return null;
+
+                }
+            },
+
+            // async getEntries(zipfile, options) {
+            //     return await (new zip.ZipReader(new zip.BlobReader(zipfile))).getEntries(options);
+            // },
+            // async getURL(entry, options) {
+            //     return URL.createObjectURL(await entry.getData(new zip.BlobWriter(), options));
+            // },
+            async getEntryContent(entry, options) {
+                return await entry.getData(new zip.BlobWriter(), options);
+            },
+
+            // async entryIsDecryptable(entry, options) {
+
+            //     return await entry.getData(new zip.BlobWriter(), options);
+            //     // return await entry.checkPassword('passWord', options);
+            // },
+            async createEmptyZip(options) {
+                let newFileID = 1 + fileStore.keys().reduce((a, b) => { return a > b ? a : b }, 1);
+                let zipWriter = new zip.ZipWriter(new zip.BlobWriter("application/zip"), { bufferedWrite: true });
+                fileStore.set(newFileID, { obj: zipWriter, type: 'zipWriter' });
+                return newFileID;
+            },
+
+            async addFileToZip(file, zipFileID, options = {}) {
+                let zipWriter = fileStore.get(zipFileID).obj;
+                // let file = fileStore.get(FileID).obj;
+                return await zipWriter.add(file.name, new zip.BlobReader(file), options);
+            },
+
+            // async addFilesToZip(files, zipFileID, options = {}) {
+            //     let zipWriter = fileStore.get(zipFileID).obj;
+            //     // let file = fileStore.get(FileID).obj;
+            //     for (f in files) {
+            //         await zipWriter.add(files[f].name, new zip.BlobReader(files[f]), options);
+            //     }
+            //     return zipFileID;
+            // },
+
+            // async storeEntries(zipFileID, entries, options = {}) {
+            //     for (e in entries) {
+            //         if (!entries[e].directory) {
+
+            //         }
+            //     }
+            // },
+
+            async addDirToZip(dirName, zipFileID, options = {}) {
+                let zipWriter = fileStore.get(zipFileID).obj;
+                // let file = fileStore.get(FileID).obj;
+                return await zipWriter.add(dirName, new zip.TextReader(""), options);
+            },
+
+            async closeZip(zipFileID) {
+                let f = fileStore.get(zipFileID)
+                let zipWriter = f.obj;
+                // const blob = await zipWriter.close();
+                return await fileStore.set(zipFileID, { obj: await zipWriter.close(), type: 'blob' });
+                // return await fileStore.set(zipFileID, { obj: await zipWriter.close(), type: 'file' }).has(zipFileID) ? zipFileID : 0
+            },
+
+        };
+
+    })();
+
+
+
+</script>
+
+</html>

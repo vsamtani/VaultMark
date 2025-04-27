@@ -1,0 +1,146 @@
+body {
+    font-family: sans-serif;
+}
+
+a {
+    color: #369;
+}
+
+.note {
+    width: 500px;
+    margin: 50px auto;
+    font-size: 1.1em;
+    color: #333;
+    text-align: justify;
+}
+
+#pdfDropArea,
+#fileDropArea,
+.filelist {
+    border: 2px dashed #ccc;
+    border-radius: 20px;
+    width: 480px;
+    margin: 20px auto;
+    padding: 20px;
+}
+
+.hidden {
+    display: none;
+}
+
+#fileDropArea.highlight,
+.filelist.highlight {
+    border-color: purple;
+}
+
+p {
+    margin-top: 0;
+}
+
+.my-form {
+    margin-bottom: 10px;
+}
+
+#gallery {
+    margin-top: 10px;
+}
+
+.filelist img {
+    width: 35px;
+    margin-bottom: 10px;
+    margin-right: 10px;
+    vertical-align: middle;
+}
+
+.filelist a {
+    text-decoration: none;
+}
+
+.button {
+    display: inline-block;
+    padding: 10px;
+    background: #ccc;
+    cursor: pointer;
+    border-radius: 5px;
+    border: 1px solid #ccc;
+}
+
+.button:hover {
+    background: #ddd;
+}
+
+#fileElem {
+    display: none;
+}
+
+.fileIcon {
+    --size: 3em;
+    font-size: var(--size);
+    height: 1em;
+    width: 1em;
+    display: inline-block;
+    color: inherit;
+    fill: currentColor;
+    line-height: 4;
+    flex-shrink: 0;
+    max-width: initial
+}
+
+.rectangle {
+    counter-reset: li;
+    list-style: none;
+    font: 14px "Trebuchet MS", "Lucida Sans";
+    /* padding: 0; */
+    text-shadow: 0 1px 0 rgba(255, 255, 255, .5);
+ }
+
+.rectangle ol {
+    list-style: none;
+}
+
+
+.rectangle li {
+    position: relative;
+    display: flex;
+    align-items: center;
+    padding: .4em .4em .4em .8em;
+    margin: .5em 0 .5em 0em;
+    background: #D3D4DA;
+    color: #444;
+    text-decoration: none;
+    transition: all .3s ease-out;
+}
+
+.rectangle li:hover {
+    background: #DCDDE1;
+}
+
+.rectangle li:before {
+    /* content: counter(li); */
+    counter-increment: li;
+    position: absolute;
+    left: -2.5em;
+    top: 50%;
+    margin-top: -1em;
+    background: #9097A2;
+    height: 2em;
+    width: 2em;
+    line-height: 2em;
+    text-align: center;
+    font-weight: bold;
+}
+
+.rectangle li:after {
+    position: absolute;
+    content: "";
+    border: .5em solid transparent;
+    left: -1em;
+    top: 50%;
+    margin-top: -.5em;
+    transition: all .3s ease-out;
+}
+
+.rectangle li:hover:after {
+    left: -.5em;
+    border-left-color: #9097A2;
+}

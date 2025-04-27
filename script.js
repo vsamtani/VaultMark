@@ -87,7 +87,7 @@ function handleFiles(files) {
 };
 
 async function processStoredFile(storedFileID, inputPassword = "", actions = ['open', 'unprotect', 'protect']) {
-    console.log("processStoredFile: " + storedFileID);
+    // console.log("processStoredFile: " + storedFileID);
     let f = await model.getFile(storedFileID).obj;
     let isZip = (f.type == 'application/zip' || f.type == 'application/x-zip-compressed');
     let isPDF = (f.type == 'application/pdf');
@@ -165,9 +165,7 @@ async function processStoredFile(storedFileID, inputPassword = "", actions = ['o
             };
             runs.push([prev_width, prev_height, curr_run]);
 
-            console.log("Ranges and runs defined", ranges, runs);
-
-
+            // console.log("Ranges and runs defined", ranges, runs);
             coherentpdf.deletePdf(pdf);
         }
     };
@@ -213,9 +211,8 @@ async function processStoredFile(storedFileID, inputPassword = "", actions = ['o
             // Stamp the file
             let stampText = card.querySelector("input#stamp-pdf-input").value;
             if (!stampText) stampText = card.querySelector("input#stamp-pdf-input").placeholder;
-            const stampedPDFID = await stampPDF(storedFileID, stampText, ranges, runs);
+            const stampedPDFID = await markPDF(storedFileID, stampText, ranges, runs, true);
             displayFileOnCard(storedFileID, stampedPDFID, "STAMPED " + fName, ".stamp-pdf-group", "PDF stamped with " + stampText);
-
         };
 
         if (actions.includes('mark')) {
@@ -227,11 +224,10 @@ async function processStoredFile(storedFileID, inputPassword = "", actions = ['o
                 " on " +
                 new Date().toLocaleString("en-GB", { day: "2-digit", year: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
             const markedPDFID = await markPDF(storedFileID, markText, ranges, runs);
-            displayFileOnCard(storedFileID, markedPDFID, "MARKED " + fName, ".mark-pdf-group", "PDF personalised for " + recipientText);
+            displayFileOnCard(storedFileID, markedPDFID, "MARKED " + fName, ".mark-pdf-group", "PDF " + (!recipientText ? "marked for release." : "personalised for " + recipientText));
         };
 
         if (isEncryptedPDF && actions.includes('open')) {
-            console.log("User-Encrypted PDF");
             card.querySelector(".decrypt-group").classList.remove("hidden");
             const decryptedPDFID = await cryptPDF(storedFileID, inputPassword, "", true);
             if (decryptedPDFID === null) {
@@ -239,7 +235,6 @@ async function processStoredFile(storedFileID, inputPassword = "", actions = ['o
                 card.querySelector(".file-name-subtext").textContent = "PDF file is password-protected. " + (inputPassword == "" ? "" : "Cannot decrypt with password: " + inputPassword);
             } else {
                 // successfully decrypted
-                console.log("Successfully decrypted PDF");
                 displayFileOnCard(storedFileID, decryptedPDFID, "PASSWORD-REMOVED " + fName, ".decrypt-group", "PDF password (" + inputPassword + ") removed from original file.");
             };
         };
@@ -283,130 +278,130 @@ async function processStoredFile(storedFileID, inputPassword = "", actions = ['o
     };
 };
 
-async function markPDF_OLD(storedFileID, markText, ranges, runs) {
+// async function markPDF_OLD(storedFileID, markText, ranges, runs) {
 
-    let permissions = [coherentpdf.noAnnot, coherentpdf.noAssemble, coherentpdf.noCopy, coherentpdf.noEdit, coherentpdf.noExtract, coherentpdf.noForms];
-    let encryption = coherentpdf.aes256bitisotrue;
-    let f = await model.getFile(storedFileID).obj;
-    let pdfBuffer = new Uint8Array(await f.arrayBuffer());
-    let pdf = coherentpdf.fromMemory(pdfBuffer, "");
-    coherentpdf.setFast();
-    coherentpdf.upright(pdf);
+//     let permissions = [coherentpdf.noAnnot, coherentpdf.noAssemble, coherentpdf.noCopy, coherentpdf.noEdit, coherentpdf.noExtract, coherentpdf.noForms];
+//     let encryption = coherentpdf.aes256bitisotrue;
+//     let f = await model.getFile(storedFileID).obj;
+//     let pdfBuffer = new Uint8Array(await f.arrayBuffer());
+//     let pdf = coherentpdf.fromMemory(pdfBuffer, "");
+//     coherentpdf.setFast();
+//     coherentpdf.upright(pdf);
 
-    for (const r of ranges) {
-        console.log(r);
-        mb = r[1][0];
-        let pdfrange = r[1][1];
-        let width = mb[1] - mb[0];
-        let height = mb[3] - mb[2];
+//     for (const r of ranges) {
+//         console.log(r);
+//         mb = r[1][0];
+//         let pdfrange = r[1][1];
+//         let width = mb[1] - mb[0];
+//         let height = mb[3] - mb[2];
 
-        // Scale the page down
-        let sc = 1 - (30 / height); // we want about 30 pts at the top and bottom. For A4, this is about 96% scaling.
-        coherentpdf.scaleContents(pdf, pdfrange, coherentpdf.posCentre, width / 2, height / 2, sc);
+//         // Scale the page down
+//         let sc = 1 - (30 / height); // we want about 30 pts at the top and bottom. For A4, this is about 96% scaling.
+//         coherentpdf.scaleContents(pdf, pdfrange, coherentpdf.posCentre, width / 2, height / 2, sc);
 
-        let frame_height = height * (1 - sc) / 2;
+//         let frame_height = height * (1 - sc) / 2;
 
-        // Add the protective marking text
+//         // Add the protective marking text
 
-        // addText(metrics, pdf, range, 
-        // text, 
-        // anchor, p1, p2, 
-        // linespacing, bates, 
-        // font, fontsize, 
-        // r, g, b, 
-        // underneath, 
-        // relative_to_cropbox, 
-        // outline, 
-        // opacity, 
-        // justification,
-        // midline, topline, 
-        // filename, 
-        // linewidth, 
-        // embed_fonts)
-
-
-        coherentpdf.addText(false, pdf, pdfrange,
-            markText,
-            coherentpdf.bottom, -frame_height / 2, 0.0,
-            1.0, 1,
-            coherentpdf.helveticaBold, 10.0,
-            0.137, 0.157, 0.188,
-            false,
-            false,
-            false,
-            1.0,
-            coherentpdf.centreJustify,
-            true, false,
-            "",
-            1.0,
-            false);
+//         // addText(metrics, pdf, range, 
+//         // text, 
+//         // anchor, p1, p2, 
+//         // linespacing, bates, 
+//         // font, fontsize, 
+//         // r, g, b, 
+//         // underneath, 
+//         // relative_to_cropbox, 
+//         // outline, 
+//         // opacity, 
+//         // justification,
+//         // midline, topline, 
+//         // filename, 
+//         // linewidth, 
+//         // embed_fonts)
 
 
-        coherentpdf.addText(false, pdf, pdfrange,
-            markText,
-            coherentpdf.top, -frame_height / 2, 0.0,
-            1.0, 1,
-            coherentpdf.helveticaBold, 10.0,
-            0.137, 0.157, 0.188,
-            false,
-            false,
-            false,
-            1.0,
-            coherentpdf.centreJustify,
-            true, false,
-            "",
-            1.0,
-            false);
+//         coherentpdf.addText(false, pdf, pdfrange,
+//             markText,
+//             coherentpdf.bottom, -frame_height / 2, 0.0,
+//             1.0, 1,
+//             coherentpdf.helveticaBold, 10.0,
+//             0.137, 0.157, 0.188,
+//             false,
+//             false,
+//             false,
+//             1.0,
+//             coherentpdf.centreJustify,
+//             true, false,
+//             "",
+//             1.0,
+//             false);
 
 
-    }
-
-    console.log("Pages marked, about to impose");
-
-    // Impose the pdf onto a 1x1 grid - this forces the scaled pages to 
-    // behave properly, and gives us an option to draw a visible box 
-    // around them. 
-    // 
-    // If all pages are the same size do it for the whole pdf.
-    // If not, split the pdf into the runs, do it for each run, and 
-    // then merge them back together.
-
-    if (ranges.size == 1) {
-        console.log("One range")
-        // create a blank pdf with the 
-        try {
-            coherentpdf.impose(pdf, 1.0, 1.0, false, false, false, false, false, 0.0, 0.0, 0.5)
-        } catch (e) {
-            console.log(e);
-        }
-    } else {
-        console.log("Multiple runs", runs)
-        let run_pdfs = [];
-        for (const r in runs) {
-            let p = coherentpdf.selectPages(pdf, runs[r][2]);
-            try {
-                coherentpdf.impose(p, 1.0, 1.0, false, false, false, false, false, 0.0, 0.0, 0.5);
-            } catch (e) {
-                console.log(e);
-            }
-            run_pdfs.push(p);
-        }
-        // merge them back into one
-        console.log("About to merge " + run_pdfs.length + " pdfs");
-        pdf = coherentpdf.mergeSimple(run_pdfs);
-        // clean up the intermediate pdfs.
-        run_pdfs.forEach((p) => { coherentpdf.deletePdf(p) });
-    }
-
-    let pdfOut = coherentpdf.toMemoryEncrypted(pdf, encryption, permissions, generatePassword(), "", false, false);
-    let pdfBlob = new Blob([pdfOut], { type: 'application/zip' });
-    coherentpdf.deletePdf(pdf);
-    return await model.storeFile(pdfBlob);
+//         coherentpdf.addText(false, pdf, pdfrange,
+//             markText,
+//             coherentpdf.top, -frame_height / 2, 0.0,
+//             1.0, 1,
+//             coherentpdf.helveticaBold, 10.0,
+//             0.137, 0.157, 0.188,
+//             false,
+//             false,
+//             false,
+//             1.0,
+//             coherentpdf.centreJustify,
+//             true, false,
+//             "",
+//             1.0,
+//             false);
 
 
-}
+//     }
 
-async function markPDF(storedFileID, markText, ranges, runs) {
+//     console.log("Pages marked, about to impose");
+
+//     // Impose the pdf onto a 1x1 grid - this forces the scaled pages to 
+//     // behave properly, and gives us an option to draw a visible box 
+//     // around them. 
+//     // 
+//     // If all pages are the same size do it for the whole pdf.
+//     // If not, split the pdf into the runs, do it for each run, and 
+//     // then merge them back together.
+
+//     if (ranges.size == 1) {
+//         console.log("One range")
+//         // create a blank pdf with the 
+//         try {
+//             coherentpdf.impose(pdf, 1.0, 1.0, false, false, false, false, false, 0.0, 0.0, 0.5)
+//         } catch (e) {
+//             console.log(e);
+//         }
+//     } else {
+//         console.log("Multiple runs", runs)
+//         let run_pdfs = [];
+//         for (const r in runs) {
+//             let p = coherentpdf.selectPages(pdf, runs[r][2]);
+//             try {
+//                 coherentpdf.impose(p, 1.0, 1.0, false, false, false, false, false, 0.0, 0.0, 0.5);
+//             } catch (e) {
+//                 console.log(e);
+//             }
+//             run_pdfs.push(p);
+//         }
+//         // merge them back into one
+//         console.log("About to merge " + run_pdfs.length + " pdfs");
+//         pdf = coherentpdf.mergeSimple(run_pdfs);
+//         // clean up the intermediate pdfs.
+//         run_pdfs.forEach((p) => { coherentpdf.deletePdf(p) });
+//     }
+
+//     let pdfOut = coherentpdf.toMemoryEncrypted(pdf, encryption, permissions, generatePassword(), "", false, false);
+//     let pdfBlob = new Blob([pdfOut], { type: 'application/zip' });
+//     coherentpdf.deletePdf(pdf);
+//     return await model.storeFile(pdfBlob);
+
+
+// }
+
+async function markPDF(storedFileID, markText, ranges, runs, stamp = false) {
 
     let permissions = [coherentpdf.noAnnot, coherentpdf.noAssemble, coherentpdf.noCopy, coherentpdf.noEdit, coherentpdf.noExtract, coherentpdf.noForms];
     let encryption = coherentpdf.aes256bitisotrue;
@@ -421,53 +416,103 @@ async function markPDF(storedFileID, markText, ranges, runs) {
     for (const r of runs) {
         let width = r[0];
         let height = r[1];
-        let pdfrange = r[2];
+        let pdfRange = r[2];
 
         // create a blank overlay pdf, same page size and num of pages
-        let mPdf = coherentpdf.blankDocument(width, height, pdfrange.length);
+        let overlayPdf = coherentpdf.blankDocument(width, height, pdfRange.length);
+
+
+        // If the page is narrow, we need to scale down the font to fit
+        // Calculate against A4 portrait width
+        // Don't get bigger if it's wider
+        let fontScale = Math.min((width / 595), 1);
 
         // Scale factor
-        let sc = 1 - (30 / height); // we want about 30 pts at the top and bottom. For A4, this is about 96% scaling.
-        let frame_height = height * (1 - sc) / 2;
+        // we want about 15 pts each at the top and bottom for A4 portrait. 
+        let frame_height = 15 * fontScale;
+        let sc = 1 - (frame_height * 2 / height);
 
-        // Mark the overlay pdf
-        coherentpdf.addText(false, mPdf, coherentpdf.all(mPdf),
-            markText,
-            coherentpdf.bottom, frame_height / 2, 0.0,
-            1.0, 1,
-            coherentpdf.helveticaBold, 10.0,
-            0.137, 0.157, 0.188,
-            false,
-            false,
-            false,
-            1.0,
-            coherentpdf.centreJustify,
-            true, false,
-            "",
-            1.0,
-            false);
 
-        coherentpdf.addText(false, mPdf, coherentpdf.all(mPdf),
-            markText,
-            coherentpdf.top, frame_height / 2, 0.0,
-            1.0, 1,
-            coherentpdf.helveticaBold, 10.0,
-            0.137, 0.157, 0.188,
-            false,
-            false,
-            false,
-            1.0,
-            coherentpdf.centreJustify,
-            true, false,
-            "",
-            1.0,
-            false);
+        if (stamp) {
+            // Create the array of positions for a stamp
+            let stampPositions = [];
+            stampPositions.push([width * 1 / 4, height * 1.5 / 6]);
+            stampPositions.push([width * 1 / 4, height * 3.5 / 6]);
+            stampPositions.push([width * 1 / 4, height * 5.5 / 6]);
+            stampPositions.push([width * 3 / 4, height * 0.5 / 6]);
+            stampPositions.push([width * 3 / 4, height * 2.5 / 6]);
+            stampPositions.push([width * 3 / 4, height * 4.5 / 6]);
+            // stampPositions.push([width * 3 / 4, height * 6.5 / 6]);
+            // scale the font wrt to the page area - for A4, approx 25pt.
+            let protectiveStampSizeFactor = coherentpdf.textWidth(coherentpdf.helveticaBold, "CONFIDENTIAL") / coherentpdf.textWidth(coherentpdf.helveticaBold, markText);
+            let stampFontSize = 25 * (width / 600) * (height / 850) * protectiveStampSizeFactor;
+
+            for (const position of stampPositions) {
+                coherentpdf.addText(false, overlayPdf, coherentpdf.all(overlayPdf),
+                    markText,
+                    coherentpdf.posCentre, position[0], position[1],
+                    1.0, 1,
+                    coherentpdf.helveticaBold, stampFontSize,
+                    0.137, 0.157, 0.188,
+                    false,
+                    false,
+                    false,
+                    0.5,
+                    coherentpdf.centreJustify,
+                    true, false,
+                    "",
+                    1.0,
+                    false);
+            }
+        } else {
+
+            // Scale the original pdf 
+            coherentpdf.scaleContents(pdf, pdfRange, coherentpdf.posCentre, width / 2, height / 2, sc);
+
+            // Scale the overlay pdf 
+            coherentpdf.scaleContents(overlayPdf, coherentpdf.all(overlayPdf), coherentpdf.posCentre, width / 2, height / 2, sc);
+
+            // Mark the overlay pdf
+            coherentpdf.addText(false, overlayPdf, coherentpdf.all(overlayPdf),
+                markText,
+                coherentpdf.bottom, -frame_height / 2, 0.0,
+                1.0, 1,
+                coherentpdf.helveticaBold, 10.0 * fontScale,
+                0.137, 0.157, 0.188,
+                false,
+                false,
+                false,
+                1.0,
+                coherentpdf.centreJustify,
+                true, false,
+                "",
+                1.0,
+                false);
+
+            coherentpdf.addText(false, overlayPdf, coherentpdf.all(overlayPdf),
+                markText,
+                coherentpdf.top, -frame_height / 2, 0.0,
+                1.0, 1,
+                coherentpdf.helveticaBold, 10.0 * fontScale,
+                0.137, 0.157, 0.188,
+                false,
+                false,
+                false,
+                1.0,
+                coherentpdf.centreJustify,
+                true, false,
+                "",
+                1.0,
+                false);
+
+            // impose the overlay (to cretae a visible box)
+            coherentpdf.impose(overlayPdf, 1.0, 1.0, false, false, false, false, false, 0.0, 0.0, 0.5)
+        }
+
 
         // Preserve the overlay pdf for later merging
-        run_pdfs.push(mPdf);
+        run_pdfs.push(overlayPdf);
 
-        // Scale the original pdf 
-        coherentpdf.scaleContents(pdf, pdfrange, coherentpdf.posCentre, width / 2, height / 2, sc);
     }
 
     // if necessary, merge the overlay pdfs
@@ -488,233 +533,235 @@ async function markPDF(storedFileID, markText, ranges, runs) {
     return await model.storeFile(pdfBlob);
 }
 
-async function stampPDF(storedFileID, protectiveStamp, ranges, runs) {
-    let permissions = [coherentpdf.noAnnot, coherentpdf.noAssemble, coherentpdf.noCopy, coherentpdf.noEdit, coherentpdf.noExtract, coherentpdf.noForms];
-    let encryption = coherentpdf.aes256bitisotrue;
-    let f = await model.getFile(storedFileID).obj;
-    let pdfBuffer = new Uint8Array(await f.arrayBuffer());
-    let pdf = coherentpdf.fromMemory(pdfBuffer, "");
-    coherentpdf.setFast();
+// async function stampPDF(storedFileID, protectiveStamp, ranges, runs) {
+//     let permissions = [coherentpdf.noAnnot, coherentpdf.noAssemble, coherentpdf.noCopy, coherentpdf.noEdit, coherentpdf.noExtract, coherentpdf.noForms];
+//     let encryption = coherentpdf.aes256bitisotrue;
+//     let f = await model.getFile(storedFileID).obj;
+//     let pdfBuffer = new Uint8Array(await f.arrayBuffer());
+//     let pdf = coherentpdf.fromMemory(pdfBuffer, "");
+//     coherentpdf.setFast();
 
 
-    let protectiveStampSizeFactor = coherentpdf.textWidth(coherentpdf.helveticaBold, "CONFIDENTIAL") / coherentpdf.textWidth(coherentpdf.helveticaBold, protectiveStamp);
+//     let protectiveStampSizeFactor = coherentpdf.textWidth(coherentpdf.helveticaBold, "CONFIDENTIAL") / coherentpdf.textWidth(coherentpdf.helveticaBold, protectiveStamp);
 
+//     let run_pdfs = [];
 
-    // create a blank document with the same size pages 
-    let run_pdfs = [];
+//     for (const r of runs) {
+//         let width = r[0];
+//         let height = r[1];
+//         let pdfrange = r[2];
 
-    for (const r of runs) {
-        let width = r[0];
-        let height = r[1];
-        let pdfrange = r[2];
+//         // Create the array of positions for a stamp
+//         let stampPositions = [];
+//         stampPositions.push([width * 1 / 4, (height * 1 / 6)]);
+//         stampPositions.push([width * 1 / 4, height * 3 / 6]);
+//         stampPositions.push([width * 1 / 4, height * 5 / 6]);
+//         stampPositions.push([width * 3 / 4, height * 0 / 6]);
+//         stampPositions.push([width * 3 / 4, height * 2 / 6]);
+//         stampPositions.push([width * 3 / 4, height * 4 / 6]);
+//         stampPositions.push([width * 3 / 4, height * 6 / 6]);
+//         // scale the font wrt to the page area - for A4, approx 25pt.
 
-        // Create the array of positions for a stamp
-        let stampPositions = [];
-        stampPositions.push([width * 1 / 4, (height * 1 / 6)]);
-        stampPositions.push([width * 1 / 4, height * 3 / 6]);
-        stampPositions.push([width * 1 / 4, height * 5 / 6]);
-        stampPositions.push([width * 3 / 4, height * 0 / 6]);
-        stampPositions.push([width * 3 / 4, height * 2 / 6]);
-        stampPositions.push([width * 3 / 4, height * 4 / 6]);
-        stampPositions.push([width * 3 / 4, height * 6 / 6]);
-        // scale the font wrt to the page area - for A4, approx 25pt.
-
-        let stampFontSize = 25 * (width / 600) * (height / 850) * protectiveStampSizeFactor;
-
-
-        // create a blank overlay pdf
-        let mPdf = coherentpdf.blankDocument(width, height, pdfrange.length);
-
-        // Stamp the pages of the overlay PDF
-        for (const position of stampPositions) {
-            coherentpdf.addText(false, mPdf, coherentpdf.all(mPdf),
-                protectiveStamp,
-                coherentpdf.posCentre, position[0], position[1],
-                1.0, 1,
-                coherentpdf.helveticaBold, stampFontSize,
-                0.137, 0.157, 0.188,
-                false,
-                false,
-                false,
-                0.5,
-                coherentpdf.centreJustify,
-                true, false,
-                "",
-                1.0,
-                false);
-        }
-
-        // Preserve the overlay pdf for later merging
-        run_pdfs.push(mPdf);
-
-    }
-
-    // if necessary, merge the overlay pdfs
-    if (run_pdfs.length > 1) {
-        var markedPdf = coherentpdf.mergeSimple(run_pdfs);
-        run_pdfs.forEach((p) => { coherentpdf.deletePdf(p) });
-
-    } else {
-        var markedPdf = run_pdfs[0];
-    }
-
-    pdf = coherentpdf.combinePages(markedPdf, pdf);
-
-    let pdfOut = coherentpdf.toMemoryEncrypted(pdf, encryption, permissions, generatePassword(), "", false, false);
-    let pdfBlob = new Blob([pdfOut], { type: 'application/zip' });
-    coherentpdf.deletePdf(pdf);
-    return await model.storeFile(pdfBlob);
-
-
-};
-
-async function stampPDF_OLD(storedFileID, protectiveStamp, ranges, runs) {
-    let permissions = [coherentpdf.noAnnot, coherentpdf.noAssemble, coherentpdf.noCopy, coherentpdf.noEdit, coherentpdf.noExtract, coherentpdf.noForms];
-    let encryption = coherentpdf.aes256bitisotrue;
-    let f = await model.getFile(storedFileID).obj;
-    let pdfBuffer = new Uint8Array(await f.arrayBuffer());
-    let pdf = coherentpdf.fromMemory(pdfBuffer, "");
-    coherentpdf.setFast();
-
-    for (const r of ranges) {
-        mb = r[1][0];
-        let pdfrange = r[1][1];
-        let width = mb[1] - mb[0];
-        let height = mb[3] - mb[2];
-
-        // Create the array of positions for a stamp
-        let stampPositions = [];
-        stampPositions.push([width * 1 / 4, height * 1 / 6]);
-        stampPositions.push([width * 1 / 4, height * 3 / 6]);
-        stampPositions.push([width * 1 / 4, height * 5 / 6]);
-        stampPositions.push([width * 3 / 4, height * 0 / 6]);
-        stampPositions.push([width * 3 / 4, height * 2 / 6]);
-        stampPositions.push([width * 3 / 4, height * 4 / 6]);
-        stampPositions.push([width * 3 / 4, height * 6 / 6]);
-        // scale the font wrt to the page area - for A4, approx 25pt.
-        let protectiveStampSizeFactor = coherentpdf.textWidth(coherentpdf.helveticaBold, "CONFIDENTIAL") / coherentpdf.textWidth(coherentpdf.helveticaBold, protectiveStamp);
-
-        let stampFontSize = 25 * (width / 600) * (height / 850) * protectiveStampSizeFactor;
+//         let stampFontSize = 25 * (width / 600) * (height / 850) * protectiveStampSizeFactor;
 
 
 
-        // // Scale the page down
-        // let sc = 1 - (30 / height); // we want about 30 pts at the top and bottom. For A4, this is about 96% scaling.
-        // coherentpdf.scaleContents(pdf, pdfrange, coherentpdf.posCentre, width / 2, height / 2, sc);
+//         // create a blank overlay pdf
+//         let overlayPdf = coherentpdf.blankDocument(width, height, pdfrange.length);
 
-        // let frame_width = width * (1 - sc) / 2;
-        // let frame_height = height * (1 - sc) / 2;
+//         // Stamp the pages of the overlay PDF
+//         for (const position of stampPositions) {
+//             coherentpdf.addText(false, overlayPdf, coherentpdf.all(overlayPdf),
+//                 protectiveStamp,
+//                 coherentpdf.posCentre, position[0], position[1],
+//                 1.0, 1,
+//                 coherentpdf.helveticaBold, stampFontSize,
+//                 0.137, 0.157, 0.188,
+//                 false,
+//                 false,
+//                 false,
+//                 0.5,
+//                 coherentpdf.centreJustify,
+//                 true, false,
+//                 "",
+//                 1.0,
+//                 false);
+//         }
 
-        // Add the protective marking text
+//         // Preserve the overlay pdf for later merging
+//         run_pdfs.push(overlayPdf);
 
-        // addText(metrics, pdf, range, 
-        // text, 
-        // anchor, p1, p2, 
-        // linespacing, bates, 
-        // font, fontsize, 
-        // r, g, b, 
-        // underneath, 
-        // relative_to_cropbox, 
-        // outline, 
-        // opacity, 
-        // justification,
-        // midline, topline, 
-        // filename, 
-        // linewidth, 
-        // embed_fonts)
+//     }
 
-        // coherentpdf.addText(false, pdf, pdfrange,
-        //     protectiveMarkBottom,
-        //     coherentpdf.bottom, -frame_height / 2, 0.0,
-        //     1.0, 1,
-        //     coherentpdf.helveticaBold, 10.0,
-        //     0.137, 0.157, 0.188,
-        //     false,
-        //     false,
-        //     false,
-        //     1.0,
-        //     coherentpdf.centreJustify,
-        //     true, false,
-        //     "",
-        //     1.0,
-        //     false);
+//     // if necessary, merge the overlay pdfs
+//     if (run_pdfs.length > 1) {
+//         var markedPdf = coherentpdf.mergeSimple(run_pdfs);
+//         run_pdfs.forEach((p) => { coherentpdf.deletePdf(p) });
+
+//     } else {
+//         var markedPdf = run_pdfs[0];
+//     }
+
+//     pdf = coherentpdf.combinePages(markedPdf, pdf);
+
+//     let pdfOut = coherentpdf.toMemoryEncrypted(pdf, encryption, permissions, generatePassword(), "", false, false);
+//     let pdfBlob = new Blob([pdfOut], { type: 'application/zip' });
+//     coherentpdf.deletePdf(pdf);
+//     return await model.storeFile(pdfBlob);
 
 
-        // coherentpdf.addText(false, pdf, pdfrange,
-        //     protectiveMarkTop,
-        //     coherentpdf.top, -frame_height / 2, 0.0,
-        //     1.0, 1,
-        //     coherentpdf.helveticaBold, 10.0,
-        //     0.137, 0.157, 0.188,
-        //     false,
-        //     false,
-        //     false,
-        //     1.0,
-        //     coherentpdf.centreJustify,
-        //     true, false,
-        //     "",
-        //     1.0,
-        //     false);
+// };
 
-        // Stamp the pages
-        for (const position in stampPositions) {
-            coherentpdf.addText(false, pdf, pdfrange,
-                protectiveStamp,
-                coherentpdf.posCentre, stampPositions[position][0], stampPositions[position][1],
-                1.0, 1,
-                coherentpdf.helveticaBold, stampFontSize,
-                0.137, 0.157, 0.188,
-                false,
-                false,
-                false,
-                0.5,
-                coherentpdf.centreJustify,
-                true, false,
-                "",
-                1.0,
-                false);
-        }
 
-    }
 
-    let pdfOut = coherentpdf.toMemoryEncrypted(pdf, encryption, permissions, generatePassword(), "", false, false);
-    let pdfBlob = new Blob([pdfOut], { type: 'application/zip' });
-    coherentpdf.deletePdf(pdf);
-    return await model.storeFile(pdfBlob);
+// async function stampPDF_OLD(storedFileID, protectiveStamp, ranges, runs) {
+//     let permissions = [coherentpdf.noAnnot, coherentpdf.noAssemble, coherentpdf.noCopy, coherentpdf.noEdit, coherentpdf.noExtract, coherentpdf.noForms];
+//     let encryption = coherentpdf.aes256bitisotrue;
+//     let f = await model.getFile(storedFileID).obj;
+//     let pdfBuffer = new Uint8Array(await f.arrayBuffer());
+//     let pdf = coherentpdf.fromMemory(pdfBuffer, "");
+//     coherentpdf.setFast();
 
-    console.log("Pages marked, about to impose");
+//     for (const r of ranges) {
+//         mb = r[1][0];
+//         let pdfrange = r[1][1];
+//         let width = mb[1] - mb[0];
+//         let height = mb[3] - mb[2];
 
-    // Impose the pdf onto a 1x1 grid - this forces the scaled pages to 
-    // behave properly, and gives us an option to draw a visible box 
-    // around them. 
-    // 
-    // If all pages are the same size do it for the whole pdf.
-    // If not, split the pdf into the runs, do it for each run, and 
-    // then merge them back together.
+//         // Create the array of positions for a stamp
+//         let stampPositions = [];
+//         stampPositions.push([width * 1 / 4, height * 1 / 6]);
+//         stampPositions.push([width * 1 / 4, height * 3 / 6]);
+//         stampPositions.push([width * 1 / 4, height * 5 / 6]);
+//         stampPositions.push([width * 3 / 4, height * 0 / 6]);
+//         stampPositions.push([width * 3 / 4, height * 2 / 6]);
+//         stampPositions.push([width * 3 / 4, height * 4 / 6]);
+//         stampPositions.push([width * 3 / 4, height * 6 / 6]);
+//         // scale the font wrt to the page area - for A4, approx 25pt.
+//         let protectiveStampSizeFactor = coherentpdf.textWidth(coherentpdf.helveticaBold, "CONFIDENTIAL") / coherentpdf.textWidth(coherentpdf.helveticaBold, protectiveStamp);
 
-    // What follows only affects the pdf that is marked, not the one for stamping.
-    // if (ranges.size == 1) {
-    //     console.log("One range")
-    //     coherentpdf.impose(pdf, 1.0, 1.0, false, false, false, false, false, 0.0, 0.0, 0.5)
-    // } else {
-    //     console.log("Multiple runs", runs)
-    //     let run_pdfs = [];
-    //     for (const r in runs) {
-    //         let p = coherentpdf.selectPages(pdf, runs[r]);
-    //         coherentpdf.impose(p, 1.0, 1.0, false, false, false, false, false, 0.0, 0.0, 0.5);
-    //         run_pdfs.push(p);
-    //     }
-    //     // merge them back into one
-    //     console.log("About to merge " + run_pdfs.length + " pdfs");
-    //     pdf = coherentpdf.mergeSimple(run_pdfs);
-    // }
-};
+//         let stampFontSize = 25 * (width / 600) * (height / 850) * protectiveStampSizeFactor;
+
+
+
+//         // // Scale the page down
+//         // let sc = 1 - (30 / height); // we want about 30 pts at the top and bottom. For A4, this is about 96% scaling.
+//         // coherentpdf.scaleContents(pdf, pdfrange, coherentpdf.posCentre, width / 2, height / 2, sc);
+
+//         // let frame_width = width * (1 - sc) / 2;
+//         // let frame_height = height * (1 - sc) / 2;
+
+//         // Add the protective marking text
+
+//         // addText(metrics, pdf, range, 
+//         // text, 
+//         // anchor, p1, p2, 
+//         // linespacing, bates, 
+//         // font, fontsize, 
+//         // r, g, b, 
+//         // underneath, 
+//         // relative_to_cropbox, 
+//         // outline, 
+//         // opacity, 
+//         // justification,
+//         // midline, topline, 
+//         // filename, 
+//         // linewidth, 
+//         // embed_fonts)
+
+//         // coherentpdf.addText(false, pdf, pdfrange,
+//         //     protectiveMarkBottom,
+//         //     coherentpdf.bottom, -frame_height / 2, 0.0,
+//         //     1.0, 1,
+//         //     coherentpdf.helveticaBold, 10.0,
+//         //     0.137, 0.157, 0.188,
+//         //     false,
+//         //     false,
+//         //     false,
+//         //     1.0,
+//         //     coherentpdf.centreJustify,
+//         //     true, false,
+//         //     "",
+//         //     1.0,
+//         //     false);
+
+
+//         // coherentpdf.addText(false, pdf, pdfrange,
+//         //     protectiveMarkTop,
+//         //     coherentpdf.top, -frame_height / 2, 0.0,
+//         //     1.0, 1,
+//         //     coherentpdf.helveticaBold, 10.0,
+//         //     0.137, 0.157, 0.188,
+//         //     false,
+//         //     false,
+//         //     false,
+//         //     1.0,
+//         //     coherentpdf.centreJustify,
+//         //     true, false,
+//         //     "",
+//         //     1.0,
+//         //     false);
+
+//         // Stamp the pages
+//         for (const position in stampPositions) {
+//             coherentpdf.addText(false, pdf, pdfrange,
+//                 protectiveStamp,
+//                 coherentpdf.posCentre, stampPositions[position][0], stampPositions[position][1],
+//                 1.0, 1,
+//                 coherentpdf.helveticaBold, stampFontSize,
+//                 0.137, 0.157, 0.188,
+//                 false,
+//                 false,
+//                 false,
+//                 0.5,
+//                 coherentpdf.centreJustify,
+//                 true, false,
+//                 "",
+//                 1.0,
+//                 false);
+//         }
+
+//     }
+
+//     let pdfOut = coherentpdf.toMemoryEncrypted(pdf, encryption, permissions, generatePassword(), "", false, false);
+//     let pdfBlob = new Blob([pdfOut], { type: 'application/zip' });
+//     coherentpdf.deletePdf(pdf);
+//     return await model.storeFile(pdfBlob);
+
+//     console.log("Pages marked, about to impose");
+
+//     // Impose the pdf onto a 1x1 grid - this forces the scaled pages to 
+//     // behave properly, and gives us an option to draw a visible box 
+//     // around them. 
+//     // 
+//     // If all pages are the same size do it for the whole pdf.
+//     // If not, split the pdf into the runs, do it for each run, and 
+//     // then merge them back together.
+
+//     // What follows only affects the pdf that is marked, not the one for stamping.
+//     // if (ranges.size == 1) {
+//     //     console.log("One range")
+//     //     coherentpdf.impose(pdf, 1.0, 1.0, false, false, false, false, false, 0.0, 0.0, 0.5)
+//     // } else {
+//     //     console.log("Multiple runs", runs)
+//     //     let run_pdfs = [];
+//     //     for (const r in runs) {
+//     //         let p = coherentpdf.selectPages(pdf, runs[r]);
+//     //         coherentpdf.impose(p, 1.0, 1.0, false, false, false, false, false, 0.0, 0.0, 0.5);
+//     //         run_pdfs.push(p);
+//     //     }
+//     //     // merge them back into one
+//     //     console.log("About to merge " + run_pdfs.length + " pdfs");
+//     //     pdf = coherentpdf.mergeSimple(run_pdfs);
+//     // }
+// };
 
 function generatePassword() {
-    // Pattern abcdef-123456-pqrtuv
+    // Pattern abcdef-234567-pqrtuv
     // Easy to type on a touchscreen keyboard
     // Easy to read out
     // No easily confused characters (losz)
+
     let pw_alpha = "";
     let pw_num = "";
     while (pw_alpha.length < 15) {

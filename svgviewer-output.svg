@@ -1,7 +1,0 @@
-<svg class="icon icon--lg margin-right-2xs" viewBox="0 0 48 48">
-  <path d="M30,1H9A4,4,0,0,0,5,5V43a4,4,0,0,0,4,4H39a4,4,0,0,0,4-4V14Z" fill="rgb(162,162,169)"/>
-  <polygon points="30 14 43 14 30 1 30 14" fill="rgb(215,215,218)"/>
-  <rect x="11" y="20" width="26" height="2" fill="rgb(20, 21, 26)"/>
-  <rect x="11" y="26" width="26" height="2" fill="rgb(20, 21, 26)"/>
-  <rect x="11" y="32" width="14" height="2" fill="rgb(20, 21, 26)"/>
-</svg>

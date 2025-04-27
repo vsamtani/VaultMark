@@ -69,7 +69,7 @@ function handleFiles(files) {
             card = document.querySelector("#card-id-" + storedFileID);
         }
         card.classList.remove("hidden");
-        card.querySelector(".file-name-text").textContent = file.name;
+        card.querySelector(".file-name-text").textContent = formatFileName(file.name, 70);
         let btns = card.querySelectorAll("button");
         btns.forEach((b) => {
             let inp = b.parentElement.querySelector("input");
@@ -212,6 +212,7 @@ async function processStoredFile(storedFileID, inputPassword = "", actions = ['o
         if (actions.includes('stamp')) {
             // Stamp the file
             let stampText = card.querySelector("input#stamp-pdf-input").value;
+            if (!stampText) stampText = card.querySelector("input#stamp-pdf-input").placeholder;
             const stampedPDFID = await stampPDF(storedFileID, stampText, ranges, runs);
             displayFileOnCard(storedFileID, stampedPDFID, "STAMPED " + fName, ".stamp-pdf-group", "PDF stamped with " + stampText);
 
@@ -415,8 +416,6 @@ async function markPDF(storedFileID, markText, ranges, runs) {
     coherentpdf.setFast();
     coherentpdf.upright(pdf);
 
-
-    // create a blank document with the same size pages 
     let run_pdfs = [];
 
     for (const r of runs) {
@@ -424,7 +423,7 @@ async function markPDF(storedFileID, markText, ranges, runs) {
         let height = r[1];
         let pdfrange = r[2];
 
-        // create a blank overlay pdf
+        // create a blank overlay pdf, same page size and num of pages
         let mPdf = coherentpdf.blankDocument(width, height, pdfrange.length);
 
         // Scale factor
@@ -480,7 +479,7 @@ async function markPDF(storedFileID, markText, ranges, runs) {
         var markedPdf = run_pdfs[0];
     }
 
-    console.log("About to combine scaled and marked pages");
+
     pdf = coherentpdf.combinePages(markedPdf, pdf);
 
     let pdfOut = coherentpdf.toMemoryEncrypted(pdf, encryption, permissions, generatePassword(), "", false, false);
@@ -497,7 +496,9 @@ async function stampPDF(storedFileID, protectiveStamp, ranges, runs) {
     let pdf = coherentpdf.fromMemory(pdfBuffer, "");
     coherentpdf.setFast();
 
+
     let protectiveStampSizeFactor = coherentpdf.textWidth(coherentpdf.helveticaBold, "CONFIDENTIAL") / coherentpdf.textWidth(coherentpdf.helveticaBold, protectiveStamp);
+
 
     // create a blank document with the same size pages 
     let run_pdfs = [];
@@ -726,6 +727,18 @@ function generatePassword() {
     }
     return pw_alpha.slice(0, 6) + "-" + pw_num.slice(0, 6) + "-" + pw_alpha.slice(6, 12);
 }
+
+function formatFileName(fN, max = 40) {
+    if (max < 11) { max = 11 };
+    if (fN.length < max) {
+        return fN;
+    } else {
+        let extensionDelimiterIndex = fN.lastIndexOf('.');
+        let middleRemovedName = `${fN.substring(0, max - 10)}...${fN.substring(extensionDelimiterIndex - 3)}`
+        return middleRemovedName;
+    }
+}
+
 
 async function testZip(storedFileID) {
     const entries = await model.getEntriesFromStoredFile(storedFileID);

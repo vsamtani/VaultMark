@@ -55,7 +55,6 @@ function deactivateDropZone(e) {
 // }
 
 function handleFiles(e) {
-    fileDropArea.textContent = e.type;
     if (e.type == 'drop') {
         deactivateDropZone(e);
         var dt = e.dataTransfer;
@@ -63,6 +62,7 @@ function handleFiles(e) {
     }
     if (e.type == 'change') {
         var files = this.files;
+        fileDropArea.textContent = files;
     }
     // NB we can get here from the file select dialog, or from drag and drop events
     files = [...files];

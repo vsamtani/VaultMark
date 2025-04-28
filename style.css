@@ -10,7 +10,6 @@ body {
     display: flex;
     justify-content: center;
     align-items: center;
-    /* height: 100vh; */
     margin: 3vh 3vw;
     flex-direction: column; /* Stack items vertically */
     row-gap: 20px;
@@ -50,6 +49,11 @@ body {
     flex-shrink: 0;
   }
 
+  .file-name-text {
+    text-overflow: ellipsis;
+    overflow: hidden;
+  }
+
   .file-subtext {
     font-size: 14px;
     padding: 0px 8px;
@@ -70,7 +74,6 @@ body {
     padding: 8px 12px;
     border: 0px solid #ccc;
     border-bottom: 1px solid #000;
-    /* border-radius: 8px; */
     font-size: 14px;
   }
 
@@ -105,7 +108,6 @@ body {
   .status-message {
     flex-shrink: 1;
     padding: 8px;
-    /* width: 100px; */
     text-align: left;
     font-size: 14px;
     color: #28a745;
@@ -127,7 +129,6 @@ body {
   .drag-area.highlight {
     background-color: #e1f4fe;
     border-color: purple;
-    border: 2px purple ;
   }
   
   .drag-area p {
@@ -136,9 +137,6 @@ body {
     font-size: 16px;
   }
   
-  input[type="file"] {
-    display: none;
-  }
 
   /* Media Query for Mobile */
   @media (max-width: 520px ) {
@@ -146,10 +144,7 @@ body {
       width: 90%;
       padding: 16px;
     }
-  
-
-
-  
+   
     /* Styling for Drag and Drop Area */
     .drag-area {
       width: 90%; /* Adjust width to 90% of parent container */

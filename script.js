@@ -4,14 +4,18 @@ let fileIcon = 'data:image/svg+xml;base64,PHN2ZyBjbGFzcz0iaWNvbiBpY29uLS1sZyBtYX
 
 // Drag and drop functions
 let fileDropArea = document.getElementById("drag-area");
+fileDropArea.querySelector("input#file-input").addEventListener("change", handleFiles);
 
 // Prevent default drag behaviours, and handle drag events
 ["dragenter", "dragover", "dragleave", "drop"].forEach((eventName) => {
     window.addEventListener(eventName, preventDefaults, false);
     window.addEventListener(eventName, deactivateDropZone, false);
     fileDropArea.addEventListener(eventName, preventDefaults, false);
-    fileDropArea.addEventListener(eventName, handleDrag, false)
+    fileDropArea.addEventListener(eventName, activateDropZone, false)
 });
+
+
+
 
 // Handle dropped files
 
@@ -35,7 +39,7 @@ function deactivateDropZone(e) {
 
 function handleDrag(e) {
     var draggedItems = [...e.dataTransfer.items];
-    (draggedItems.length == 1 && (
+    (draggedItems.length > 0 && (
         draggedItems[0].type == 'application/x-zip-compressed' ||
         draggedItems[0].type == 'application/zip' ||
         draggedItems[0].type == 'application/pdf' ||
@@ -81,7 +85,6 @@ function handleFiles(files) {
             b.addEventListener("click", () => { processStoredFile(storedFileID, "", [action]) });
             inp.addEventListener("keypress", (event) => { if (event.key === "Enter") { event.preventDefault(); b.click() } });
         })
-
         processStoredFile(storedFileID);
     });
 };
@@ -98,7 +101,6 @@ async function processStoredFile(storedFileID, inputPassword = "", actions = ['o
 
     if (isPDF) {
         // check if it's a valid PDF
-        // let f = await model.getFile(storedFileID).obj;
         var pdfBuffer = new Uint8Array(await f.arrayBuffer());
         try {
             // if this succeeds, it's a PDF
@@ -188,7 +190,6 @@ async function processStoredFile(storedFileID, inputPassword = "", actions = ['o
     }
 
     if (isPDF) {
-
 
         if (!isEncryptedPDF && actions.includes('protect')) {
             // password-protect it immediately

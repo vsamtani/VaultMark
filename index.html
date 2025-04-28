@@ -31,11 +31,10 @@
 </head>
 
 <body>
-
     <!-- File Drag and Drop Area -->
     <div id="drag-area" class="drag-area" onclick="document.getElementById('file-input').click()">
         <p>Drag and drop a file here, or click to select one.</p>
-        <input type="file" id="file-input" onchange="handleFiles(this.files)" />
+        <input type="file" id="file-input" />
     </div>
 
     <div id="file-card" class="card hidden">
@@ -48,11 +47,9 @@
             </div>
         </div>
         <div class="file-name file-subtext">
-            <div class="file-name-subtext">
-                
+            <div class="file-name-subtext">  
             </div>
         </div>
-
 
         <div class="input-group hidden decrypt-group">
             <span class="status-message hidden"></span>

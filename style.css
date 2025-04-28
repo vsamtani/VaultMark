@@ -43,6 +43,7 @@ body {
     display: flex;
     align-items: center;
     text-align: left;
+    overflow: hidden;
   }
   
   .file-name svg {

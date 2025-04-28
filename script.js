@@ -27,34 +27,42 @@ function preventDefaults(e) {
 
 function activateDropZone(e) {
     fileDropArea.classList.add("highlight");
-    fileDropArea.addEventListener("drop", handleDrop, false);
+    fileDropArea.addEventListener("drop", handleFiles, false);
     e.dataTransfer.dropEffect = 'copy';
 };
 
 function deactivateDropZone(e) {
     fileDropArea.classList.remove("highlight");
-    fileDropArea.removeEventListener("drop", handleDrop, false);
+    fileDropArea.removeEventListener("drop", handleFiles, false);
     e.dataTransfer.dropEffect = 'none';
 };
 
-function handleDrag(e) {
-    var draggedItems = [...e.dataTransfer.items];
-    (draggedItems.length > 0 && (
-        draggedItems[0].type == 'application/x-zip-compressed' ||
-        draggedItems[0].type == 'application/zip' ||
-        draggedItems[0].type == 'application/pdf' ||
-        true
-    )) ? activateDropZone(e) : deactivateDropZone(e);
-};
+// function handleDrag(e) {
+//     var draggedItems = [...e.dataTransfer.items];
+//     (draggedItems.length > 0 && (
+//         draggedItems[0].type == 'application/x-zip-compressed' ||
+//         draggedItems[0].type == 'application/zip' ||
+//         draggedItems[0].type == 'application/pdf' ||
+//         true
+//     )) ? activateDropZone(e) : deactivateDropZone(e);
+// };
 
-function handleDrop(e) {
-    deactivateDropZone(e);
-    var dt = e.dataTransfer;
-    var files = dt.files;
-    handleFiles(files);
-}
+// function handleDrop(e) {
+//     // deactivateDropZone(e);
+//     // var dt = e.dataTransfer;
+//     // var files = dt.files;
+//     handleFiles(e);
+// }
 
-function handleFiles(files) {
+function handleFiles(e) {
+    if (e.type == 'drop') {
+        deactivateDropZone(e);
+        var dt = e.dataTransfer;
+        var files = dt.files;
+    }
+    if (e.type == 'change') {
+        var files = this.files;
+    }
     // NB we can get here from the file select dialog, or from drag and drop events
     files = [...files];
 

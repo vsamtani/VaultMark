@@ -1,6 +1,6 @@
 /* General styling */
 :root {
-    --card-width: 500px;
+    --card-width: 460px;
 }
 
 body {
@@ -19,10 +19,9 @@ body {
   
   .card {
     background-color: #ffffff;
-    border-radius: 20px;
+    border-radius: 10px;
     box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
     padding: 24px;
-
     width: var(--card-width);
     display: flex;
     flex-direction: column;
@@ -83,7 +82,7 @@ body {
   }
 
   button, a, button:focus, a:focus {
-    width: 100px; /* Fixed size for all buttons */
+    width: 80px; /* Fixed size for all buttons */
     flex-shrink: 0;
     padding: 8px 0;
     background-color: #007aff;
@@ -128,6 +127,7 @@ body {
   .drag-area.highlight {
     background-color: #e1f4fe;
     border-color: purple;
+    border: 2px purple ;
   }
   
   .drag-area p {
@@ -141,34 +141,12 @@ body {
   }
 
   /* Media Query for Mobile */
-  @media (max-width: 480px) {
+  @media (max-width: 520px ) {
     .card {
       width: 90%;
       padding: 16px;
     }
   
-    .input-group {
-      flex-direction: column;
-    }
-  
-    input[type="text"],
-    button {
-      width: 100%;
-    }
-  
-    button {
-      margin-top: 8px;
-    }
-  
-    .file-name {
-      font-size: 16px;
-      flex-direction: column;
-      align-items: flex-start;
-    }
-  
-    .file-name svg {
-      margin-bottom: 4px;
-    }
 
 
   

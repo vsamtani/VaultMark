@@ -465,7 +465,9 @@ async function markPDF(storedFileID, markText, ranges, runs, stamp = false) {
                     false);
             }
         } else {
-
+            let protectiveMarkSizeFactor = coherentpdf.textWidth(coherentpdf.helveticaBold, "Document prepared for release to FIRSTNAME LASTNAME on 15 July 2025, 20:00") / coherentpdf.textWidth(coherentpdf.helveticaBold, markText);
+            protectiveMarkSizeFactor = Math.min(protectiveMarkSizeFactor, 1);
+            
             // Scale the original pdf 
             coherentpdf.scaleContents(pdf, pdfRange, coherentpdf.posCentre, width / 2, height / 2, sc);
 
@@ -477,7 +479,7 @@ async function markPDF(storedFileID, markText, ranges, runs, stamp = false) {
                 markText,
                 coherentpdf.bottom, -frame_height / 2, 0.0,
                 1.0, 1,
-                coherentpdf.helveticaBold, 10.0 * fontScale,
+                coherentpdf.helveticaBold, 10.0 * protectiveMarkSizeFactor * fontScale,
                 0.137, 0.157, 0.188,
                 false,
                 false,
@@ -493,7 +495,7 @@ async function markPDF(storedFileID, markText, ranges, runs, stamp = false) {
                 markText,
                 coherentpdf.top, -frame_height / 2, 0.0,
                 1.0, 1,
-                coherentpdf.helveticaBold, 10.0 * fontScale,
+                coherentpdf.helveticaBold, 10.0 * protectiveMarkSizeFactor * fontScale,
                 0.137, 0.157, 0.188,
                 false,
                 false,

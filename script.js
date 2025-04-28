@@ -62,7 +62,6 @@ function handleFiles(e) {
     }
     if (e.type == 'change') {
         var files = this.files;
-        fileDropArea.textContent = files;
     }
     // NB we can get here from the file select dialog, or from drag and drop events
     files = [...files];

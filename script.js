@@ -55,6 +55,7 @@ function deactivateDropZone(e) {
 // }
 
 function handleFiles(e) {
+    fileDropArea.textContent = e.type;
     if (e.type == 'drop') {
         deactivateDropZone(e);
         var dt = e.dataTransfer;

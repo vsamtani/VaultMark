@@ -47,6 +47,10 @@ body {
   .file-name svg {
     margin-right: 8px;
     flex-shrink: 0;
+    height: 30px;
+    fill: #85B09A;
+    fill-rule: evenodd;
+    clip-rule: evenodd;
   }
 
   .file-name-text {

@@ -52,7 +52,7 @@ function handleFiles(e) {
     // display a card for this file
     // if one doesn't exist, clone it.
 
-    displayCard(storedFileID, file.name);
+    // displayCard(storedFileID, file.name);
     processStoredFile(storedFileID);
   });
 }
@@ -89,9 +89,7 @@ async function processStoredFile(storedFileID, inputPassword = "", actions = ['o
   let isPDF = (f.type == 'application/pdf');
   let fName = f.name;
 
-  let card = document.querySelector("#card-id-" + storedFileID);
-  inputPassword = (actions.includes('open')) ? card.querySelector("input#decrypt-input").value.trim() : "";
-
+  
   if (isPDF) {
     // check if it's a valid PDF
     var pdfBuffer = new Uint8Array(await f.arrayBuffer());
@@ -178,12 +176,18 @@ async function processStoredFile(storedFileID, inputPassword = "", actions = ['o
   // This analysis only needs to be done once, and the results
   // could be stored in the model - improvement
 
+
+  displayCard(storedFileID, fName);
+  let card = document.querySelector("#card-id-" + storedFileID);
+  inputPassword = (actions.includes('open')) ? card.querySelector("input#decrypt-input").value.trim() : "";
+  
+
   if (isEncryptedZip || isEncryptedPDF) {
     card.querySelector(".decrypt-group").classList.remove("hidden");
   }
 
   if (isPDF) {
-
+    card.querySelector(".file-name svg path#pdf").classList.remove("hidden");
     if (!isEncryptedPDF && actions.includes('protect')) {
       // password-protect it immediately
       let pw = generatePassword();
@@ -241,6 +245,7 @@ async function processStoredFile(storedFileID, inputPassword = "", actions = ['o
   };
 
   if (isZip) {
+    card.querySelector(".file-name svg path#zip").classList.remove("hidden");
     if (!isEncryptedZip && actions.includes('protect')) {
       let pw = generatePassword();
       const encryptedZipID = await cryptZip(storedFileID, true, true, pw);
@@ -263,6 +268,7 @@ async function processStoredFile(storedFileID, inputPassword = "", actions = ['o
   };
 
   if (!isPDF && !isZip && actions.includes('protect')) {
+    card.querySelector(".file-name svg path#generic").classList.remove("hidden");
     // ordinary file, chuck it into a zip
     let pw = generatePassword();
     const encryptedZipID = await cryptZip(storedFileID, false, true, pw);

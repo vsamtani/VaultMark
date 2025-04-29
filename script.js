@@ -1,10 +1,11 @@
 // Icon
 let fileIcon = 'data:image/svg+xml;base64,PHN2ZyBjbGFzcz0iaWNvbiBpY29uLS1sZyBtYXJnaW4tcmlnaHQtMnhzIiB2aWV3Qm94PSIwIDAgNDggNDgiPgogIDxwYXRoIGQ9Ik0zMCwxSDlBNCw0LDAsMCwwLDUsNVY0M2E0LDQsMCwwLDAsNCw0SDM5YTQsNCwwLDAsMCw0LTRWMTRaIiBmaWxsPSJyZ2IoMTYyLDE2MiwxNjkpIi8+CiAgPHBvbHlnb24gcG9pbnRzPSIzMCAxNCA0MyAxNCAzMCAxIDMwIDE0IiBmaWxsPSJyZ2IoMjE1LDIxNSwyMTgpIi8+CiAgPHJlY3QgeD0iMTEiIHk9IjIwIiB3aWR0aD0iMjYiIGhlaWdodD0iMiIgZmlsbD0icmdiKDIwLCAyMSwgMjYpIi8+CiAgPHJlY3QgeD0iMTEiIHk9IjI2IiB3aWR0aD0iMjYiIGhlaWdodD0iMiIgZmlsbD0icmdiKDIwLCAyMSwgMjYpIi8+CiAgPHJlY3QgeD0iMTEiIHk9IjMyIiB3aWR0aD0iMTQiIGhlaWdodD0iMiIgZmlsbD0icmdiKDIwLCAyMSwgMjYpIi8+Cjwvc3ZnPgo='
 
-
 // Drag and drop functions
 let fileDropArea = document.getElementById("drag-area");
-fileDropArea.querySelector("input#file-input").addEventListener("change", handleFiles);
+let fileDropInput = fileDropArea.querySelector("input#file-input");
+fileDropInput.addEventListener("change", handleFiles);
+fileDropArea.addEventListener("click", (() => { fileDropInput.click() }));
 
 // Prevent default drag behaviours, and handle drag events
 ["dragenter", "dragover", "dragleave", "drop"].forEach((eventName) => {
@@ -14,12 +15,7 @@ fileDropArea.querySelector("input#file-input").addEventListener("change", handle
   fileDropArea.addEventListener(eventName, activateDropZone, false)
 });
 
-
-
-
 // Handle dropped files
-
-
 function preventDefaults(e) {
   e.preventDefault();
   e.stopPropagation();
@@ -37,33 +33,17 @@ function deactivateDropZone(e) {
   e.dataTransfer.dropEffect = 'none';
 };
 
-// function handleDrag(e) {
-//     var draggedItems = [...e.dataTransfer.items];
-//     (draggedItems.length > 0 && (
-//         draggedItems[0].type == 'application/x-zip-compressed' ||
-//         draggedItems[0].type == 'application/zip' ||
-//         draggedItems[0].type == 'application/pdf' ||
-//         true
-//     )) ? activateDropZone(e) : deactivateDropZone(e);
-// };
-
-// function handleDrop(e) {
-//     // deactivateDropZone(e);
-//     // var dt = e.dataTransfer;
-//     // var files = dt.files;
-//     handleFiles(e);
-// }
-
 function handleFiles(e) {
+  // get the files 
+  let files;
   if (e.type == 'drop') {
     deactivateDropZone(e);
-    var dt = e.dataTransfer;
-    var files = dt.files;
+    files = e.dataTransfer.files;
   }
   if (e.type == 'change') {
-    var files = this.files;
+    files = this.files;
   }
-  // NB we can get here from the file select dialog, or from drag and drop events
+
   files = [...files];
 
   files.forEach(async (file) => {
@@ -72,28 +52,33 @@ function handleFiles(e) {
     // display a card for this file
     // if one doesn't exist, clone it.
 
-    let card = document.querySelector("#card-id-" + storedFileID);
-    if (card === null) {
-      card = document.querySelector(".card");
-      let newCard = card.cloneNode(true);
-      newCard.id = "card-id-" + storedFileID;
-      card.insertAdjacentElement('afterend', newCard);
-      card = document.querySelector("#card-id-" + storedFileID);
-    }
-    card.classList.remove("hidden");
-    card.querySelector(".file-name-text").textContent = formatFileName(file.name, 70);
-    let btns = card.querySelectorAll("button");
-    btns.forEach((b) => {
-      let inp = b.parentElement.querySelector("input");
-      let action = b.textContent.toLowerCase();
-      b.id = action + "_" + storedFileID;
-      b.removeAttribute("onclick");
-      inp.removeAttribute("onchange");
-      inp.removeAttribute("onkeypress");
-      b.addEventListener("click", () => { processStoredFile(storedFileID, "", [action]) });
-      inp.addEventListener("keypress", (event) => { if (event.key === "Enter") { event.preventDefault(); b.click() } });
-    })
+    displayCard(storedFileID, file.name);
     processStoredFile(storedFileID);
+  });
+}
+async function displayCard(storedFileID, title) {
+  // display a card for this file
+  // if one doesn't exist, clone it.
+  let card = document.querySelector("#card-id-" + storedFileID);
+  if (card === null) {
+    card = document.querySelector(".card#file-card").cloneNode(true);
+    card.id = "card-id-" + storedFileID;
+    fileDropArea.insertAdjacentElement('afterend', card);
+  }
+
+  card.classList.remove("hidden");
+  card.querySelector(".file-name-text").textContent = title;
+  let inputGroup = card.querySelectorAll("div.input-group");
+  inputGroup.forEach((group) => {
+    let b = group.querySelector("button");
+    let inp = group.querySelector("input");
+    let action = b.textContent.toLowerCase();
+    b.id = action + "_" + storedFileID;
+    b.removeAttribute("onclick");
+    inp.removeAttribute("onchange");
+    inp.removeAttribute("onkeypress");
+    b.addEventListener("click", () => { processStoredFile(storedFileID, "", [action]); });
+    inp.addEventListener("keypress", (event) => { if (event.key === "Enter") { event.preventDefault(); b.click(); } });
   });
 };
 
@@ -420,7 +405,7 @@ async function markPDF(storedFileID, markText, ranges, runs, stamp = false) {
   coherentpdf.setFast();
   coherentpdf.upright(pdf);
 
-  let run_pdfs = [];
+  let overlay_pdfs = [];
 
   for (const r of runs) {
     let width = r[0];
@@ -429,17 +414,6 @@ async function markPDF(storedFileID, markText, ranges, runs, stamp = false) {
 
     // create a blank overlay pdf, same page size and num of pages
     let overlayPdf = coherentpdf.blankDocument(width, height, pdfRange.length);
-
-
-    // If the page is narrow, we need to scale down the font to fit
-    // Calculate against A4 portrait width
-    // Don't get bigger if it's wider
-    let fontScale = Math.min((width / 595), 1);
-
-    // Scale factor
-    // we want about 15 pts each at the top and bottom for A4 portrait. 
-    let frame_height = 15 * fontScale;
-    let sc = 1 - (frame_height * 2 / height);
 
 
     if (stamp) {
@@ -451,17 +425,19 @@ async function markPDF(storedFileID, markText, ranges, runs, stamp = false) {
       stampPositions.push([width * 3 / 4, height * 0.5 / 6]);
       stampPositions.push([width * 3 / 4, height * 2.5 / 6]);
       stampPositions.push([width * 3 / 4, height * 4.5 / 6]);
-      // stampPositions.push([width * 3 / 4, height * 6.5 / 6]);
+
       // scale the font wrt to the page area - for A4, approx 25pt.
-      let protectiveStampSizeFactor = coherentpdf.textWidth(coherentpdf.helveticaBold, "CONFIDENTIAL") / coherentpdf.textWidth(coherentpdf.helveticaBold, markText);
-      let stampFontSize = 25 * (width / 600) * (height / 850) * protectiveStampSizeFactor;
+      let fontScaleText = coherentpdf.textWidth(coherentpdf.helveticaBold, "CONFIDENTIAL") / coherentpdf.textWidth(coherentpdf.helveticaBold, markText);
+      let fontScalePage = Math.sqrt((width / 600) * (height / 850));
+
+      let fontScale = fontScalePage * fontScaleText;
 
       for (const position of stampPositions) {
         coherentpdf.addText(false, overlayPdf, coherentpdf.all(overlayPdf),
           markText,
           coherentpdf.posCentre, position[0], position[1],
           1.0, 1,
-          coherentpdf.helveticaBold, stampFontSize,
+          coherentpdf.helveticaBold, 25 * fontScale,
           0.137, 0.157, 0.188,
           false,
           false,
@@ -474,8 +450,21 @@ async function markPDF(storedFileID, markText, ranges, runs, stamp = false) {
           false);
       }
     } else {
-      let protectiveMarkSizeFactor = coherentpdf.textWidth(coherentpdf.helveticaBold, "Document prepared for release to FIRSTNAME LASTNAME on 15 July 2025, 20:00") / coherentpdf.textWidth(coherentpdf.helveticaBold, markText);
-      protectiveMarkSizeFactor = Math.min(protectiveMarkSizeFactor, 1);
+      // If the page is narrow, we need to scale down the font to fit
+      // Calculate against A4 portrait width
+      // Don't get bigger if it's wider
+      let fontScalePage = Math.min((width / 595), 1);
+
+      let fontScaleText = coherentpdf.textWidth(coherentpdf.helveticaBold, "Document prepared for release to FIRSTNAME LASTNAME on 15 July 2025, 20:00") / coherentpdf.textWidth(coherentpdf.helveticaBold, markText);
+      fontScaleText = Math.min(fontScaleText, 1);
+
+      let fontScale = fontScalePage * fontScaleText;
+
+      // Scale factor
+      // we want about 15 pts each at the top and bottom for A4 portrait. 
+      // scaled if the font has been scaled down
+      let frame_height = 15 * fontScale
+      let sc = 1 - (frame_height * 2 / height);
 
       // Scale the original pdf 
       coherentpdf.scaleContents(pdf, pdfRange, coherentpdf.posCentre, width / 2, height / 2, sc);
@@ -488,7 +477,7 @@ async function markPDF(storedFileID, markText, ranges, runs, stamp = false) {
         markText,
         coherentpdf.bottom, -frame_height / 2, 0.0,
         1.0, 1,
-        coherentpdf.helveticaBold, 10.0 * protectiveMarkSizeFactor * fontScale,
+        coherentpdf.helveticaBold, 13.5 * fontScale,
         0.137, 0.157, 0.188,
         false,
         false,
@@ -504,7 +493,7 @@ async function markPDF(storedFileID, markText, ranges, runs, stamp = false) {
         markText,
         coherentpdf.top, -frame_height / 2, 0.0,
         1.0, 1,
-        coherentpdf.helveticaBold, 10.0 * protectiveMarkSizeFactor * fontScale,
+        coherentpdf.helveticaBold, 13.5 * fontScale,
         0.137, 0.157, 0.188,
         false,
         false,
@@ -519,28 +508,25 @@ async function markPDF(storedFileID, markText, ranges, runs, stamp = false) {
       // impose the overlay (to cretae a visible box)
       coherentpdf.impose(overlayPdf, 1.0, 1.0, false, false, false, false, false, 0.0, 0.0, 0.5)
     }
-
-
     // Preserve the overlay pdf for later merging
-    run_pdfs.push(overlayPdf);
-
+    overlay_pdfs.push(overlayPdf);
   }
 
   // if necessary, merge the overlay pdfs
-  if (run_pdfs.length > 1) {
-    var markedPdf = coherentpdf.mergeSimple(run_pdfs);
-    run_pdfs.forEach((p) => { coherentpdf.deletePdf(p) });
-
+  if (overlay_pdfs.length > 1) {
+    var overlayPdf = coherentpdf.mergeSimple(overlay_pdfs);
+    overlay_pdfs.forEach((p) => { coherentpdf.deletePdf(p) });
   } else {
-    var markedPdf = run_pdfs[0];
+    var overlayPdf = overlay_pdfs[0];
   }
 
+  let markedPdf = coherentpdf.combinePages(overlayPdf, pdf);
 
-  pdf = coherentpdf.combinePages(markedPdf, pdf);
-
-  let pdfOut = coherentpdf.toMemoryEncrypted(pdf, encryption, permissions, generatePassword(), "", false, false);
-  let pdfBlob = new Blob([pdfOut], { type: 'application/zip' });
+  let pdfOut = coherentpdf.toMemoryEncrypted(markedPdf, encryption, permissions, generatePassword(), "", false, false);
+  let pdfBlob = new Blob([pdfOut], { type: 'application/pdf' });
   coherentpdf.deletePdf(pdf);
+  coherentpdf.deletePdf(overlayPdf);
+  coherentpdf.deletePdf(markedPdf);
   return await model.storeFile(pdfBlob);
 }
 
@@ -772,15 +758,18 @@ function generatePassword() {
   // Easy to type on a touchscreen keyboard
   // Easy to read out
   // No easily confused characters (losz)
+  // Entropy: 50 bits, a bit better than correct-horse-battery-staple
 
   let pw_alpha = "";
   let pw_num = "";
-  while (pw_alpha.length < 15) {
-    pw_alpha += Math.random().toString(36).slice(2, 7);
+
+  while (pw_alpha.length < 12) {
+    // pw_alpha += Math.random().toString(36).slice(2, 7);
+    pw_alpha += crypto.getRandomValues(new BigUint64Array(5)).reduce((a,b) => {return a + b.toString(36)},"");
     pw_alpha = pw_alpha.replace(/[0123456789losz]/g, '');
   };
-  while (pw_num.length < 7) {
-    pw_num += Math.random().toString(10).slice(2, 7);
+  while (pw_num.length < 6) {
+    pw_num += crypto.getRandomValues(new BigUint64Array(5)).reduce((a,b) => {return a + b.toString(10)},"");
     pw_num = pw_num.replace(/[01]/g, '');
   }
   return pw_alpha.slice(0, 6) + "-" + pw_num.slice(0, 6) + "-" + pw_alpha.slice(6, 12);
@@ -823,7 +812,6 @@ async function isZipDecryptable(storedFileID, password) {
 }
 
 async function cryptZip(storedFileID, isZip, encrypt = true, password, options = {}) {
-
   const fName = await model.getFile(storedFileID)
   const newZipFileID = await model.createEmptyZip();
   let passwordOptions = Object.assign({ ...options }, { password: password });
@@ -896,24 +884,24 @@ async function cryptPDF(storedFileID, decryption_pw = "", encryption_pw = "", un
 async function displayFileOnCard(storedFileID_original, storedFileID_new, downloadFileName, cardGroup, displayText, buttonText) {
   let card = document.querySelector("#card-id-" + storedFileID_original);
   let group = card.querySelector(cardGroup);
+  let message = group.querySelector("span.status-message");
   let input = group.querySelector("input");
   let button = group.querySelector("button");
   let a = group.querySelector("a");
-  let message = group.querySelector("span.status-message");
-  message.textContent = displayText;
-
 
   input.classList.add("hidden");
+
   button.classList.add("hidden");
+
+  message.textContent = displayText;
+  message.classList.remove("hidden");
 
   a.textContent = "Save";
   a.href = URL.createObjectURL(await model.getFile(storedFileID_new).obj);
   a.download = downloadFileName;
-
-  message.classList.remove("hidden");
   a.classList.remove("hidden");
-  group.classList.remove("hidden");
 
+  group.classList.remove("hidden");
 }
 
 const model = (() => {

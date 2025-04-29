@@ -22,70 +22,70 @@
 <html lang="en">
 
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>File Protection</title>
-    <link rel="stylesheet" href="style.css">
-    <script src="coherentpdf.browser.js"></script>
-    <script src="zip-full.js"></script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>File Protection</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="coherentpdf.browser.js"></script>
+  <script src="zip-full.js"></script>
 </head>
 
 <body>
-    <!-- File Drag and Drop Area -->
-    <div id="drag-area" class="drag-area" onclick="document.getElementById('file-input').click()">
-        <p>Drag and drop a file here, or click to select one.</p>
-        <input class="hidden" type="file" id="file-input" multiple />
+  <!-- File Drag and Drop Area -->
+  <div id="drag-area" class="drag-area" onclick="document.getElementById('file-input').click()">
+    <p>Drag and drop a file here, or click to select one.</p>
+    <input class="hidden" type="file" id="file-input" multiple />
+  </div>
+
+  <div id="file-card" class="card hidden">
+    <div class="file-name">
+      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="#85B09A" viewBox="0 0 16 16">
+        <path d="M4 0a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V5.5L9.5 0H4z" />
+      </svg>
+      <div class="file-name-text">
+        Filename.ext
+      </div>
+    </div>
+    <div class="file-name file-subtext">
+      <div class="file-name-subtext">
+      </div>
     </div>
 
-    <div id="file-card" class="card hidden">
-        <div class="file-name">
-            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="#85B09A" viewBox="0 0 16 16">
-                <path d="M4 0a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V5.5L9.5 0H4z" />
-            </svg>
-            <div class="file-name-text">
-                Filename.ext
-            </div>
-        </div>
-        <div class="file-name file-subtext">
-            <div class="file-name-subtext">  
-            </div>
-        </div>
-
-        <div class="input-group hidden decrypt-group">
-            <span class="status-message hidden"></span>
-            <input type="text" id="decrypt-input" placeholder="Enter the password to open..." />
-            <button>Open</button>
-            <a href="#" class="hidden"></a>
-        </div>
-
-        <div class="input-group hidden unprotect-pdf-group">
-            <span class="status-message hidden"></span>
-            <input type="text" id="unprotect-pdf-input" placeholder="Enter PDF password ..." />
-            <button>Unprotect</button>
-            <a href="#" class="hidden"></a>
-        </div>
-
-        <div class="input-group hidden encrypt-group">
-            <span class="status-message hidden"></span>
-            <input type="text" id="encrypt-input" placeholder="Enter the password to protect with..." />
-            <button>Protect</button>
-            <a href="#" class="hidden"></a>
-        </div>
-
-        <div class="input-group hidden stamp-pdf-group">
-            <span class="status-message hidden"></span>
-            <input type="text" id="stamp-pdf-input" placeholder="CONFIDENTIAL" />
-            <button>Stamp</button>
-            <a href="#" class="hidden"></a>
-        </div>
-
-        <div class="input-group hidden mark-pdf-group">
-            <span class="status-message hidden"></span>
-            <input type="text" id="mark-pdf-input" placeholder="Enter recipient name or email..." />
-            <button>Mark</button>
-            <a href="#" class="hidden"></a>
-        </div>
+    <div class="input-group hidden decrypt-group">
+      <span class="status-message hidden"></span>
+      <input type="text" id="decrypt-input" placeholder="Enter the password to open..." />
+      <button>Open</button>
+      <a href="#" class="hidden"></a>
     </div>
+
+    <div class="input-group hidden unprotect-pdf-group">
+      <span class="status-message hidden"></span>
+      <input type="text" id="unprotect-pdf-input" placeholder="Enter PDF password ..." />
+      <button>Unprotect</button>
+      <a href="#" class="hidden"></a>
+    </div>
+
+    <div class="input-group hidden encrypt-group">
+      <span class="status-message hidden"></span>
+      <input type="text" id="encrypt-input" placeholder="Enter the password to protect with..." />
+      <button>Protect</button>
+      <a href="#" class="hidden"></a>
+    </div>
+
+    <div class="input-group hidden stamp-pdf-group">
+      <span class="status-message hidden"></span>
+      <input type="text" id="stamp-pdf-input" placeholder="CONFIDENTIAL" />
+      <button>Stamp</button>
+      <a href="#" class="hidden"></a>
+    </div>
+
+    <div class="input-group hidden mark-pdf-group">
+      <span class="status-message hidden"></span>
+      <input type="text" id="mark-pdf-input" placeholder="Enter recipient name or email..." />
+      <button>Mark</button>
+      <a href="#" class="hidden"></a>
+    </div>
+  </div>
 
 </body>
 

@@ -59,11 +59,12 @@ function handleFiles(e) {
   files.forEach(async (file) => {
     console.log("in per-file. ", file, file.name);
     const storedFileID = await model.storeFile(file);
+    console.log(storedFileID);
 
     // display a card for this file
     // if one doesn't exist, clone it.
 
-    // displayCard(storedFileID, file.name);
+    displayCard(storedFileID, file.name);
     processStoredFile(storedFileID);
   });
 }

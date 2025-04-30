@@ -51,10 +51,11 @@ function handleFiles(e) {
   if (e.type == 'change') {
     files = this.files;
   }
-  console.log(files);
+  console.log(this , files);
 
   files = [...files];
-  console.log(files);
+  console.log(files, files.length);
+  
   files.forEach(async (file) => {
     const storedFileID = await model.storeFile(file);
 

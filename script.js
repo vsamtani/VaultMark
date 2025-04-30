@@ -56,9 +56,11 @@ function handleFiles(e) {
     processStoredFile(storedFileID);
   });
 }
-async function displayCard(storedFileID, title) {
+function displayCard(storedFileID, title) {
   // display a card for this file
   // if one doesn't exist, clone it.
+  let metadata = model.getFile(storedFileID).metadata;
+
   let card = document.querySelector("#card-id-" + storedFileID);
   if (card === null) {
     card = document.querySelector(".card#file-card").cloneNode(true);
@@ -67,7 +69,18 @@ async function displayCard(storedFileID, title) {
   }
 
   card.classList.remove("hidden");
-  card.querySelector(".file-name-text").textContent = title;
+  card.querySelector(".file-name-text").textContent = metadata.fName;
+
+  // File icons
+  metadata.isPDF && card.querySelector(".file-name svg path#pdf").classList.remove("hidden");
+  metadata.isZip && card.querySelector(".file-name svg path#zip").classList.remove("hidden");
+  (!metadata.isZip) && (!metadata.isPDF) && card.querySelector(".file-name svg path#generic").classList.remove("hidden");
+
+  (metadata.isEncryptedZip || metadata.isEncryptedPDF) ?
+    card.querySelector(".file-name svg path#locked").classList.remove("hidden") :
+    card.querySelector(".file-name svg path#unlocked").classList.remove("hidden");
+
+  // Set up event listeners
   let inputGroup = card.querySelectorAll("div.input-group");
   inputGroup.forEach((group) => {
     let b = group.querySelector("button");
@@ -84,124 +97,34 @@ async function displayCard(storedFileID, title) {
 
 async function processStoredFile(storedFileID, inputPassword = "", actions = ['open', 'unprotect', 'protect']) {
   // console.log("processStoredFile: " + storedFileID);
-  let f = await model.getFile(storedFileID).obj;
-  let isZip = (f.type == 'application/zip' || f.type == 'application/x-zip-compressed');
-  let isPDF = (f.type == 'application/pdf');
-  let fName = f.name;
+  // let f = await model.getFile(storedFileID).obj;
+  // let metadata.fName = f.name;
+  let metadata = await model.getFile(storedFileID).metadata;
 
-  
-  if (isPDF) {
-    // check if it's a valid PDF
-    var pdfBuffer = new Uint8Array(await f.arrayBuffer());
-    try {
-      // if this succeeds, it's a PDF
-      var pdf = coherentpdf.fromMemory(pdfBuffer, "");
-
-    } catch {
-      isPDF = false;
-    }
-  };
-
-  if (isPDF) {
-    // check if it's password-protected
-    // if it only has an owner-password, strip that out
-    let orig_encrypted = (coherentpdf.isEncrypted(pdf));
-    var isEncryptedPDF = false;
-    var isProtectedPDF = false;
-    var canDecryptPDF;
-    if (orig_encrypted) {
-      try {
-        coherentpdf.decryptPdf(pdf, "");
-        isProtectedPDF = true;
-        canDecryptPDF = true;
-        console.log("Owner protection can be removed");
-      } catch {
-        isEncryptedPDF = true;
-        canDecryptPDF = false;
-      }
-    }
-
-    // Analyse the ranges and runs
-    // only if not encrypted and not protected
-
-    if (!isEncryptedPDF && !isProtectedPDF) {
-
-      var ranges = new Map();
-      var runs = [];
-      let prev_sizespec = "";
-      let prev_width, prev_height = 0;
-      let curr_run = [];
-      for (let pg = 1; pg <= coherentpdf.pages(pdf); pg++) {
-        let mb = coherentpdf.getMediaBox(pdf, pg);
-        let width = mb[1] - mb[0];
-        let height = mb[3] - mb[2];
-        let sizespec = width.toString() + "x" + height.toString();
-        if (ranges.has(sizespec)) {
-          let arr = ranges.get(sizespec);
-          arr[1].push(pg);
-          ranges.set(sizespec, arr);
-        } else {
-          ranges.set(sizespec, [mb, [pg]]);
-        };
-
-
-        if (prev_sizespec == sizespec || pg == 1) {
-          curr_run.push(pg);
-
-        } else {
-          runs.push([prev_width, prev_height, curr_run]);
-          curr_run = [pg];
-        }
-        prev_sizespec = sizespec;
-        prev_width = width;
-        prev_height = height;
-      };
-      runs.push([prev_width, prev_height, curr_run]);
-
-      // console.log("Ranges and runs defined", ranges, runs);
-      coherentpdf.deletePdf(pdf);
-    }
-  };
-
-  if (isZip) {
-    // only check if it's the right mime-type
-    // Because Office files will pass testZip()
-    // but they can't be encrypted like normal zip files.
-    let zipTest = await testZip(storedFileID);
-    isZip = zipTest.valid;
-    var isEncryptedZip = zipTest.encrypted;
-  };
-
-  // All the analysis of the file is now done.
-  // This analysis only needs to be done once, and the results
-  // could be stored in the model - improvement
-
-
-  displayCard(storedFileID, fName);
+  displayCard(storedFileID, metadata.fName);
   let card = document.querySelector("#card-id-" + storedFileID);
   inputPassword = (actions.includes('open')) ? card.querySelector("input#decrypt-input").value.trim() : "";
-  
 
-  if (isEncryptedZip || isEncryptedPDF) {
+  if (metadata.isEncryptedZip || metadata.isEncryptedPDF) {
     card.querySelector(".decrypt-group").classList.remove("hidden");
   }
 
-  if (isPDF) {
-    card.querySelector(".file-name svg path#pdf").classList.remove("hidden");
-    if (!isEncryptedPDF && actions.includes('protect')) {
+  if (metadata.isPDF) {
+    // card.querySelector(".file-name svg path#pdf").classList.remove("hidden");
+    if (!metadata.isEncryptedPDF && actions.includes('protect')) {
       // password-protect it immediately
       let pw = generatePassword();
       const encryptedPDFID = await cryptPDF(storedFileID, "", pw, false);
       // let card = document.querySelector("#card-id-" + storedFileID);
-      card.querySelector(".file-name-subtext").textContent = "PDF with no password" + (isProtectedPDF ? ", but with some restrictions." : " and no restrictions.");
+      card.querySelector(".file-name-subtext").textContent = "PDF with no password" + (metadata.isProtectedPDF ? ", but with some restrictions." : " and no restrictions.");
       // card.querySelector(".encrypt-group .status-message").textContent = "Password for this PDF file: " + pw;
-      displayFileOnCard(storedFileID, encryptedPDFID, "PASSWORD-PROTECTED " + fName, ".encrypt-group", "Protected with password: " + pw);
+      displayFileOnCard(storedFileID, encryptedPDFID, "PASSWORD-PROTECTED " + metadata.fName, ".encrypt-group", "Protected with password: " + pw);
       // await displayFile(encryptedPDFID, "PASSWORD-PROTECTED " + fName, "Password for this PDF file: " + pw);
     };
 
-    if (!isEncryptedPDF && isProtectedPDF && actions.includes('unprotect')) {
+    if (!metadata.isEncryptedPDF && metadata.isProtectedPDF && actions.includes('unprotect')) {
       const unprotectedPDFID = await cryptPDF(storedFileID, "", "", true);
-      displayFileOnCard(storedFileID, unprotectedPDFID, "UNRESTRICTED " + fName, ".unprotect-pdf-group", "PDF restrictions removed from original file.");
+      displayFileOnCard(storedFileID, unprotectedPDFID, "UNRESTRICTED " + metadata.fName, ".unprotect-pdf-group", "PDF restrictions removed from original file.");
       // await displayFile(unprotectedPDFID, "UNRESTRICTED " + fName, "Protections removed.");
     };
 
@@ -209,8 +132,8 @@ async function processStoredFile(storedFileID, inputPassword = "", actions = ['o
       // Stamp the file
       let stampText = card.querySelector("input#stamp-pdf-input").value;
       if (!stampText) stampText = card.querySelector("input#stamp-pdf-input").placeholder;
-      const stampedPDFID = await markPDF(storedFileID, stampText, ranges, runs, true);
-      displayFileOnCard(storedFileID, stampedPDFID, "STAMPED " + fName, ".stamp-pdf-group", "PDF stamped with " + stampText);
+      const stampedPDFID = await markPDF(storedFileID, stampText, metadata.ranges, metadata.runs, true);
+      displayFileOnCard(storedFileID, stampedPDFID, "STAMPED " + metadata.fName, ".stamp-pdf-group", "PDF stamped with " + stampText);
     };
 
     if (actions.includes('mark')) {
@@ -221,11 +144,11 @@ async function processStoredFile(storedFileID, inputPassword = "", actions = ['o
         (!recipientText ? "" : " to " + recipientText) +
         " on " +
         new Date().toLocaleString("en-GB", { day: "2-digit", year: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
-      const markedPDFID = await markPDF(storedFileID, markText, ranges, runs);
-      displayFileOnCard(storedFileID, markedPDFID, "MARKED " + fName, ".mark-pdf-group", "PDF " + (!recipientText ? "marked for release." : "personalised for " + recipientText));
+      const markedPDFID = await markPDF(storedFileID, markText, metadata.ranges, metadata.runs);
+      displayFileOnCard(storedFileID, markedPDFID, "MARKED " + metadata.fName, ".mark-pdf-group", "PDF " + (!recipientText ? "marked for release." : "personalised for " + recipientText));
     };
 
-    if (isEncryptedPDF && actions.includes('open')) {
+    if (metadata.isEncryptedPDF && actions.includes('open')) {
       card.querySelector(".decrypt-group").classList.remove("hidden");
       const decryptedPDFID = await cryptPDF(storedFileID, inputPassword, "", true);
       if (decryptedPDFID === null) {
@@ -233,32 +156,32 @@ async function processStoredFile(storedFileID, inputPassword = "", actions = ['o
         card.querySelector(".file-name-subtext").textContent = "PDF file is password-protected. " + (inputPassword == "" ? "" : "Cannot decrypt with password: " + inputPassword);
       } else {
         // successfully decrypted
-        displayFileOnCard(storedFileID, decryptedPDFID, "PASSWORD-REMOVED " + fName, ".decrypt-group", "PDF password (" + inputPassword + ") removed from original file.");
+        displayFileOnCard(storedFileID, decryptedPDFID, "PASSWORD-REMOVED " + metadata.fName, ".decrypt-group", "PDF password (" + inputPassword + ") removed from original file.");
       };
     };
 
-    if (!isEncryptedPDF && !isProtectedPDF) {
+    if (!metadata.isEncryptedPDF && !metadata.isProtectedPDF) {
       // Offer the stamp and mark options
       card.querySelector(".stamp-pdf-group").classList.remove("hidden");
       card.querySelector(".mark-pdf-group").classList.remove("hidden");
     };
   };
 
-  if (isZip) {
-    card.querySelector(".file-name svg path#zip").classList.remove("hidden");
-    if (!isEncryptedZip && actions.includes('protect')) {
+  if (metadata.isZip) {
+    // card.querySelector(".file-name svg path#zip").classList.remove("hidden");
+    if (!metadata.isEncryptedZip && actions.includes('protect')) {
       let pw = generatePassword();
       const encryptedZipID = await cryptZip(storedFileID, true, true, pw);
-      displayFileOnCard(storedFileID, encryptedZipID, "PASSWORD-PROTECTED " + fName, ".encrypt-group", "Protected with password: " + pw);
+      displayFileOnCard(storedFileID, encryptedZipID, "PASSWORD-PROTECTED " + metadata.fName, ".encrypt-group", "Protected with password: " + pw);
       card.querySelector(".file-name-subtext").textContent = "Zip file with no password.";
     };
 
-    if (isEncryptedZip && actions.includes('open')) {
-      let canDecryptZip = await (isZip && isEncryptedZip ? isZipDecryptable(storedFileID, inputPassword) : true);
+    if (metadata.isEncryptedZip && actions.includes('open')) {
+      let canDecryptZip = await (metadata.isZip && metadata.isEncryptedZip ? isZipDecryptable(storedFileID, inputPassword) : true);
       if (canDecryptZip) {
         // Decrypt immediately
         const decryptedZipID = await cryptZip(storedFileID, true, false, inputPassword);
-        displayFileOnCard(storedFileID, decryptedZipID, "PASSWORD-REMOVED " + fName, ".decrypt-group", "Password (" + inputPassword + ") removed from Zip file.");
+        displayFileOnCard(storedFileID, decryptedZipID, "PASSWORD-REMOVED " + metadata.fName, ".decrypt-group", "Password (" + inputPassword + ") removed from Zip file.");
         card.querySelector(".file-name-subtext").textContent = "Zip file is password-protected.";
 
       } else {
@@ -267,139 +190,18 @@ async function processStoredFile(storedFileID, inputPassword = "", actions = ['o
     };
   };
 
-  if (!isPDF && !isZip && actions.includes('protect')) {
+  if (!metadata.isPDF && !metadata.isZip && actions.includes('protect')) {
     card.querySelector(".file-name svg path#generic").classList.remove("hidden");
     // ordinary file, chuck it into a zip
     let pw = generatePassword();
     const encryptedZipID = await cryptZip(storedFileID, false, true, pw);
     card.querySelector(".file-name-subtext").textContent = "Placing file into a password-protected Zip file.";
-    displayFileOnCard(storedFileID, encryptedZipID, "PASSWORD-PROTECTED " + fName + ".zip", '.decrypt-group', "Password for this Zip file: " + pw);
+    displayFileOnCard(storedFileID, encryptedZipID, "PASSWORD-PROTECTED " + metadata.fName + ".zip", '.decrypt-group', "Password for this Zip file: " + pw);
     // await displayFile(encryptedZipID, "PASSWORD-PROTECTED " + fName + ".zip", "Password for this Zip file: " + pw);
   };
 };
 
-// async function markPDF_OLD(storedFileID, markText, ranges, runs) {
 
-//     let permissions = [coherentpdf.noAnnot, coherentpdf.noAssemble, coherentpdf.noCopy, coherentpdf.noEdit, coherentpdf.noExtract, coherentpdf.noForms];
-//     let encryption = coherentpdf.aes256bitisotrue;
-//     let f = await model.getFile(storedFileID).obj;
-//     let pdfBuffer = new Uint8Array(await f.arrayBuffer());
-//     let pdf = coherentpdf.fromMemory(pdfBuffer, "");
-//     coherentpdf.setFast();
-//     coherentpdf.upright(pdf);
-
-//     for (const r of ranges) {
-//         console.log(r);
-//         mb = r[1][0];
-//         let pdfrange = r[1][1];
-//         let width = mb[1] - mb[0];
-//         let height = mb[3] - mb[2];
-
-//         // Scale the page down
-//         let sc = 1 - (30 / height); // we want about 30 pts at the top and bottom. For A4, this is about 96% scaling.
-//         coherentpdf.scaleContents(pdf, pdfrange, coherentpdf.posCentre, width / 2, height / 2, sc);
-
-//         let frame_height = height * (1 - sc) / 2;
-
-//         // Add the protective marking text
-
-//         // addText(metrics, pdf, range, 
-//         // text, 
-//         // anchor, p1, p2, 
-//         // linespacing, bates, 
-//         // font, fontsize, 
-//         // r, g, b, 
-//         // underneath, 
-//         // relative_to_cropbox, 
-//         // outline, 
-//         // opacity, 
-//         // justification,
-//         // midline, topline, 
-//         // filename, 
-//         // linewidth, 
-//         // embed_fonts)
-
-
-//         coherentpdf.addText(false, pdf, pdfrange,
-//             markText,
-//             coherentpdf.bottom, -frame_height / 2, 0.0,
-//             1.0, 1,
-//             coherentpdf.helveticaBold, 10.0,
-//             0.137, 0.157, 0.188,
-//             false,
-//             false,
-//             false,
-//             1.0,
-//             coherentpdf.centreJustify,
-//             true, false,
-//             "",
-//             1.0,
-//             false);
-
-
-//         coherentpdf.addText(false, pdf, pdfrange,
-//             markText,
-//             coherentpdf.top, -frame_height / 2, 0.0,
-//             1.0, 1,
-//             coherentpdf.helveticaBold, 10.0,
-//             0.137, 0.157, 0.188,
-//             false,
-//             false,
-//             false,
-//             1.0,
-//             coherentpdf.centreJustify,
-//             true, false,
-//             "",
-//             1.0,
-//             false);
-
-
-//     }
-
-//     console.log("Pages marked, about to impose");
-
-//     // Impose the pdf onto a 1x1 grid - this forces the scaled pages to 
-//     // behave properly, and gives us an option to draw a visible box 
-//     // around them. 
-//     // 
-//     // If all pages are the same size do it for the whole pdf.
-//     // If not, split the pdf into the runs, do it for each run, and 
-//     // then merge them back together.
-
-//     if (ranges.size == 1) {
-//         console.log("One range")
-//         // create a blank pdf with the 
-//         try {
-//             coherentpdf.impose(pdf, 1.0, 1.0, false, false, false, false, false, 0.0, 0.0, 0.5)
-//         } catch (e) {
-//             console.log(e);
-//         }
-//     } else {
-//         console.log("Multiple runs", runs)
-//         let run_pdfs = [];
-//         for (const r in runs) {
-//             let p = coherentpdf.selectPages(pdf, runs[r][2]);
-//             try {
-//                 coherentpdf.impose(p, 1.0, 1.0, false, false, false, false, false, 0.0, 0.0, 0.5);
-//             } catch (e) {
-//                 console.log(e);
-//             }
-//             run_pdfs.push(p);
-//         }
-//         // merge them back into one
-//         console.log("About to merge " + run_pdfs.length + " pdfs");
-//         pdf = coherentpdf.mergeSimple(run_pdfs);
-//         // clean up the intermediate pdfs.
-//         run_pdfs.forEach((p) => { coherentpdf.deletePdf(p) });
-//     }
-
-//     let pdfOut = coherentpdf.toMemoryEncrypted(pdf, encryption, permissions, generatePassword(), "", false, false);
-//     let pdfBlob = new Blob([pdfOut], { type: 'application/zip' });
-//     coherentpdf.deletePdf(pdf);
-//     return await model.storeFile(pdfBlob);
-
-
-// }
 
 async function markPDF(storedFileID, markText, ranges, runs, stamp = false) {
 
@@ -536,249 +338,37 @@ async function markPDF(storedFileID, markText, ranges, runs, stamp = false) {
   return await model.storeFile(pdfBlob);
 }
 
-// async function stampPDF(storedFileID, protectiveStamp, ranges, runs) {
-//     let permissions = [coherentpdf.noAnnot, coherentpdf.noAssemble, coherentpdf.noCopy, coherentpdf.noEdit, coherentpdf.noExtract, coherentpdf.noForms];
-//     let encryption = coherentpdf.aes256bitisotrue;
-//     let f = await model.getFile(storedFileID).obj;
-//     let pdfBuffer = new Uint8Array(await f.arrayBuffer());
-//     let pdf = coherentpdf.fromMemory(pdfBuffer, "");
-//     coherentpdf.setFast();
-
-
-//     let protectiveStampSizeFactor = coherentpdf.textWidth(coherentpdf.helveticaBold, "CONFIDENTIAL") / coherentpdf.textWidth(coherentpdf.helveticaBold, protectiveStamp);
-
-//     let run_pdfs = [];
-
-//     for (const r of runs) {
-//         let width = r[0];
-//         let height = r[1];
-//         let pdfrange = r[2];
-
-//         // Create the array of positions for a stamp
-//         let stampPositions = [];
-//         stampPositions.push([width * 1 / 4, (height * 1 / 6)]);
-//         stampPositions.push([width * 1 / 4, height * 3 / 6]);
-//         stampPositions.push([width * 1 / 4, height * 5 / 6]);
-//         stampPositions.push([width * 3 / 4, height * 0 / 6]);
-//         stampPositions.push([width * 3 / 4, height * 2 / 6]);
-//         stampPositions.push([width * 3 / 4, height * 4 / 6]);
-//         stampPositions.push([width * 3 / 4, height * 6 / 6]);
-//         // scale the font wrt to the page area - for A4, approx 25pt.
-
-//         let stampFontSize = 25 * (width / 600) * (height / 850) * protectiveStampSizeFactor;
-
-
-
-//         // create a blank overlay pdf
-//         let overlayPdf = coherentpdf.blankDocument(width, height, pdfrange.length);
-
-//         // Stamp the pages of the overlay PDF
-//         for (const position of stampPositions) {
-//             coherentpdf.addText(false, overlayPdf, coherentpdf.all(overlayPdf),
-//                 protectiveStamp,
-//                 coherentpdf.posCentre, position[0], position[1],
-//                 1.0, 1,
-//                 coherentpdf.helveticaBold, stampFontSize,
-//                 0.137, 0.157, 0.188,
-//                 false,
-//                 false,
-//                 false,
-//                 0.5,
-//                 coherentpdf.centreJustify,
-//                 true, false,
-//                 "",
-//                 1.0,
-//                 false);
-//         }
-
-//         // Preserve the overlay pdf for later merging
-//         run_pdfs.push(overlayPdf);
-
-//     }
-
-//     // if necessary, merge the overlay pdfs
-//     if (run_pdfs.length > 1) {
-//         var markedPdf = coherentpdf.mergeSimple(run_pdfs);
-//         run_pdfs.forEach((p) => { coherentpdf.deletePdf(p) });
-
-//     } else {
-//         var markedPdf = run_pdfs[0];
-//     }
-
-//     pdf = coherentpdf.combinePages(markedPdf, pdf);
-
-//     let pdfOut = coherentpdf.toMemoryEncrypted(pdf, encryption, permissions, generatePassword(), "", false, false);
-//     let pdfBlob = new Blob([pdfOut], { type: 'application/zip' });
-//     coherentpdf.deletePdf(pdf);
-//     return await model.storeFile(pdfBlob);
-
-
-// };
-
-
-
-// async function stampPDF_OLD(storedFileID, protectiveStamp, ranges, runs) {
-//     let permissions = [coherentpdf.noAnnot, coherentpdf.noAssemble, coherentpdf.noCopy, coherentpdf.noEdit, coherentpdf.noExtract, coherentpdf.noForms];
-//     let encryption = coherentpdf.aes256bitisotrue;
-//     let f = await model.getFile(storedFileID).obj;
-//     let pdfBuffer = new Uint8Array(await f.arrayBuffer());
-//     let pdf = coherentpdf.fromMemory(pdfBuffer, "");
-//     coherentpdf.setFast();
-
-//     for (const r of ranges) {
-//         mb = r[1][0];
-//         let pdfrange = r[1][1];
-//         let width = mb[1] - mb[0];
-//         let height = mb[3] - mb[2];
-
-//         // Create the array of positions for a stamp
-//         let stampPositions = [];
-//         stampPositions.push([width * 1 / 4, height * 1 / 6]);
-//         stampPositions.push([width * 1 / 4, height * 3 / 6]);
-//         stampPositions.push([width * 1 / 4, height * 5 / 6]);
-//         stampPositions.push([width * 3 / 4, height * 0 / 6]);
-//         stampPositions.push([width * 3 / 4, height * 2 / 6]);
-//         stampPositions.push([width * 3 / 4, height * 4 / 6]);
-//         stampPositions.push([width * 3 / 4, height * 6 / 6]);
-//         // scale the font wrt to the page area - for A4, approx 25pt.
-//         let protectiveStampSizeFactor = coherentpdf.textWidth(coherentpdf.helveticaBold, "CONFIDENTIAL") / coherentpdf.textWidth(coherentpdf.helveticaBold, protectiveStamp);
-
-//         let stampFontSize = 25 * (width / 600) * (height / 850) * protectiveStampSizeFactor;
-
-
-
-//         // // Scale the page down
-//         // let sc = 1 - (30 / height); // we want about 30 pts at the top and bottom. For A4, this is about 96% scaling.
-//         // coherentpdf.scaleContents(pdf, pdfrange, coherentpdf.posCentre, width / 2, height / 2, sc);
-
-//         // let frame_width = width * (1 - sc) / 2;
-//         // let frame_height = height * (1 - sc) / 2;
-
-//         // Add the protective marking text
-
-//         // addText(metrics, pdf, range, 
-//         // text, 
-//         // anchor, p1, p2, 
-//         // linespacing, bates, 
-//         // font, fontsize, 
-//         // r, g, b, 
-//         // underneath, 
-//         // relative_to_cropbox, 
-//         // outline, 
-//         // opacity, 
-//         // justification,
-//         // midline, topline, 
-//         // filename, 
-//         // linewidth, 
-//         // embed_fonts)
-
-//         // coherentpdf.addText(false, pdf, pdfrange,
-//         //     protectiveMarkBottom,
-//         //     coherentpdf.bottom, -frame_height / 2, 0.0,
-//         //     1.0, 1,
-//         //     coherentpdf.helveticaBold, 10.0,
-//         //     0.137, 0.157, 0.188,
-//         //     false,
-//         //     false,
-//         //     false,
-//         //     1.0,
-//         //     coherentpdf.centreJustify,
-//         //     true, false,
-//         //     "",
-//         //     1.0,
-//         //     false);
-
-
-//         // coherentpdf.addText(false, pdf, pdfrange,
-//         //     protectiveMarkTop,
-//         //     coherentpdf.top, -frame_height / 2, 0.0,
-//         //     1.0, 1,
-//         //     coherentpdf.helveticaBold, 10.0,
-//         //     0.137, 0.157, 0.188,
-//         //     false,
-//         //     false,
-//         //     false,
-//         //     1.0,
-//         //     coherentpdf.centreJustify,
-//         //     true, false,
-//         //     "",
-//         //     1.0,
-//         //     false);
-
-//         // Stamp the pages
-//         for (const position in stampPositions) {
-//             coherentpdf.addText(false, pdf, pdfrange,
-//                 protectiveStamp,
-//                 coherentpdf.posCentre, stampPositions[position][0], stampPositions[position][1],
-//                 1.0, 1,
-//                 coherentpdf.helveticaBold, stampFontSize,
-//                 0.137, 0.157, 0.188,
-//                 false,
-//                 false,
-//                 false,
-//                 0.5,
-//                 coherentpdf.centreJustify,
-//                 true, false,
-//                 "",
-//                 1.0,
-//                 false);
-//         }
-
-//     }
-
-//     let pdfOut = coherentpdf.toMemoryEncrypted(pdf, encryption, permissions, generatePassword(), "", false, false);
-//     let pdfBlob = new Blob([pdfOut], { type: 'application/zip' });
-//     coherentpdf.deletePdf(pdf);
-//     return await model.storeFile(pdfBlob);
-
-//     console.log("Pages marked, about to impose");
-
-//     // Impose the pdf onto a 1x1 grid - this forces the scaled pages to 
-//     // behave properly, and gives us an option to draw a visible box 
-//     // around them. 
-//     // 
-//     // If all pages are the same size do it for the whole pdf.
-//     // If not, split the pdf into the runs, do it for each run, and 
-//     // then merge them back together.
-
-//     // What follows only affects the pdf that is marked, not the one for stamping.
-//     // if (ranges.size == 1) {
-//     //     console.log("One range")
-//     //     coherentpdf.impose(pdf, 1.0, 1.0, false, false, false, false, false, 0.0, 0.0, 0.5)
-//     // } else {
-//     //     console.log("Multiple runs", runs)
-//     //     let run_pdfs = [];
-//     //     for (const r in runs) {
-//     //         let p = coherentpdf.selectPages(pdf, runs[r]);
-//     //         coherentpdf.impose(p, 1.0, 1.0, false, false, false, false, false, 0.0, 0.0, 0.5);
-//     //         run_pdfs.push(p);
-//     //     }
-//     //     // merge them back into one
-//     //     console.log("About to merge " + run_pdfs.length + " pdfs");
-//     //     pdf = coherentpdf.mergeSimple(run_pdfs);
-//     // }
-// };
-
-function generatePassword() {
+function generatePassword(minimumEntropy = 70) {
   // Pattern abcdef-234567-pqrtuv
   // Easy to type on a touchscreen keyboard
   // Easy to read out
   // No easily confused characters (losz)
-  // Entropy: 50 bits, a bit better than correct-horse-battery-staple
+  // Entropy, assuming you know the pattern: 71 bits,
+  // (a lot better than correct-horse-battery-staple at 44 bits)
 
-  let pw_alpha = "";
-  let pw_num = "";
-
-  while (pw_alpha.length < 12) {
-    // pw_alpha += Math.random().toString(36).slice(2, 7);
-    pw_alpha += crypto.getRandomValues(new BigUint64Array(5)).reduce((a,b) => {return a + b.toString(36)},"");
-    pw_alpha = pw_alpha.replace(/[0123456789losz]/g, '');
+  let entropy_alpha = Math.log2(Math.pow(22, 6));
+  let entropy_num = Math.log2(Math.pow(8, 6));
+  let p = "";
+  let pwEntropy = 0;
+  let alpha = true;
+  while (pwEntropy < minimumEntropy) {
+    p += " " + (alpha ? pw(/[0-9]|[losz]/) : pw(/[01]|[a-z]/));
+    pwEntropy += (alpha ? entropy_alpha : entropy_num);
+    alpha = !alpha;
   };
-  while (pw_num.length < 6) {
-    pw_num += crypto.getRandomValues(new BigUint64Array(5)).reduce((a,b) => {return a + b.toString(10)},"");
-    pw_num = pw_num.replace(/[01]/g, '');
-  }
-  return pw_alpha.slice(0, 6) + "-" + pw_num.slice(0, 6) + "-" + pw_alpha.slice(6, 12);
+  return p.trim().replace(/ /g, "-");
+
+  function pw(bannedRegEx) {
+    let p = "";
+    let re = new RegExp(bannedRegEx, 'g');
+    while (p.length < 6) {
+      // pw_alpha += Math.random().toString(36).slice(2, 7);
+      p += crypto.getRandomValues(new BigUint64Array(5)).reduce((a, b) => { return a + b.toString(36) }, "");
+      p = p.replace(re, '');
+    }
+    return p.slice(0, 6);
+  };
+
 }
 
 function formatFileName(fN, max = 40) {
@@ -793,12 +383,7 @@ function formatFileName(fN, max = 40) {
 }
 
 
-async function testZip(storedFileID) {
-  const entries = await model.getEntriesFromStoredFile(storedFileID);
-  if (entries === null) { return ({ valid: false, encrypted: null }) } else {
-    return ({ valid: true, encrypted: entries.some((e) => !e.directory && e.encrypted) });
-  }
-}
+
 
 async function isZipDecryptable(storedFileID, password) {
   const entries = await model.getEntriesFromStoredFile(storedFileID);
@@ -915,11 +500,111 @@ const model = (() => {
   let fileStore = new Map();
 
   return {
-    storeFile(file) {
+    async storeFile(file) {
       // let blob = await file.arrayBuffer();
       let newFileID = 1 + fileStore.keys().reduce((a, b) => { return a > b ? a : b }, 0);
       fileStore.set(newFileID, { obj: file, type: 'file' });
+      let metadata = await model.analyseFile(newFileID);
+      fileStore.set(newFileID, { obj: file, type: 'file', metadata });
       return newFileID;
+    },
+
+    async analyseFile(fileID) {
+
+      let metadata = Object.create(null);
+
+
+      let f = model.getFile(fileID).obj;
+      metadata.isZip = (f.type == 'application/zip' || f.type == 'application/x-zip-compressed');
+      metadata.isPDF = (f.type == 'application/pdf');
+      metadata.fName = f.name;
+
+
+      if (metadata.isPDF) {
+        // check if it's a valid PDF
+        var pdfBuffer = new Uint8Array(await f.arrayBuffer());
+        try {
+          // if this succeeds, it's a PDF
+          var pdf = coherentpdf.fromMemory(pdfBuffer, "");
+
+        } catch {
+          metadata.isPDF = false;
+        }
+      };
+
+      if (metadata.isPDF) {
+        // check if it's password-protected
+        // if it only has an owner-password, strip that out
+        let orig_encrypted = (coherentpdf.isEncrypted(pdf));
+        metadata.isEncryptedPDF = false;
+        metadata.isProtectedPDF = false;
+        // var canDecryptPDF;
+        if (orig_encrypted) {
+          try {
+            coherentpdf.decryptPdf(pdf, "");
+            metadata.isProtectedPDF = true;
+            metadata.canDecryptPDF = true;
+            console.log("Owner protection can be removed");
+          } catch {
+            metadata.isEncryptedPDF = true;
+            metadata.canDecryptPDF = false;
+          }
+        }
+
+        // Analyse the ranges and runs
+        // only if not encrypted and not protected
+
+        if (!metadata.isEncryptedPDF && !metadata.isProtectedPDF) {
+
+          var ranges = new Map();
+          var runs = [];
+          let prev_sizespec = "";
+          let prev_width, prev_height = 0;
+          let curr_run = [];
+          for (let pg = 1; pg <= coherentpdf.pages(pdf); pg++) {
+            let mb = coherentpdf.getMediaBox(pdf, pg);
+            let width = mb[1] - mb[0];
+            let height = mb[3] - mb[2];
+            let sizespec = width.toString() + "x" + height.toString();
+            if (ranges.has(sizespec)) {
+              let arr = ranges.get(sizespec);
+              arr[1].push(pg);
+              ranges.set(sizespec, arr);
+            } else {
+              ranges.set(sizespec, [mb, [pg]]);
+            };
+
+
+            if (prev_sizespec == sizespec || pg == 1) {
+              curr_run.push(pg);
+
+            } else {
+              runs.push([prev_width, prev_height, curr_run]);
+              curr_run = [pg];
+            }
+            prev_sizespec = sizespec;
+            prev_width = width;
+            prev_height = height;
+          };
+          runs.push([prev_width, prev_height, curr_run]);
+
+          // console.log("Ranges and runs defined", ranges, runs);
+          coherentpdf.deletePdf(pdf);
+        }
+        metadata.runs = runs;
+        metadata.ranges = ranges;
+      };
+
+      if (metadata.isZip) {
+        // only check if it's the right mime-type
+        // Because Office files will pass testZip()
+        // but they can't be encrypted like normal zip files.
+        let zipTest = await model.testZip(fileID);
+        metadata.isZip = zipTest.valid;
+        metadata.isEncryptedZip = zipTest.encrypted;
+      };
+
+      return metadata;
     },
 
     getFile(fileID) {
@@ -937,6 +622,13 @@ const model = (() => {
 
     async getEntryContent(entry, options) {
       return await entry.getData(new zip.BlobWriter(), options);
+    },
+
+    async testZip(storedFileID) {
+      const entries = await model.getEntriesFromStoredFile(storedFileID);
+      if (entries === null) { return ({ valid: false, encrypted: null }) } else {
+        return ({ valid: true, encrypted: entries.some((e) => !e.directory && e.encrypted) });
+      }
     },
 
     async createEmptyZip(options) {

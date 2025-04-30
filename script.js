@@ -51,6 +51,7 @@ function handleFiles(e) {
   if (e.type == 'change') {
     files = this.files;
   }
+  console.log(files);
 
   files = [...files];
 

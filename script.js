@@ -54,7 +54,7 @@ function handleFiles(e) {
   console.log(files);
 
   files = [...files];
-
+  console.log(files);
   files.forEach(async (file) => {
     const storedFileID = await model.storeFile(file);
 

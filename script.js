@@ -57,6 +57,7 @@ function handleFiles(e) {
   console.log(files, files.length);
   
   files.forEach(async (file) => {
+    console.log("in per-file. ", file, file.name);
     const storedFileID = await model.storeFile(file);
 
     // display a card for this file

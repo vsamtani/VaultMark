@@ -1,9 +1,17 @@
-// Icon
-let fileIcon = 'data:image/svg+xml;base64,PHN2ZyBjbGFzcz0iaWNvbiBpY29uLS1sZyBtYXJnaW4tcmlnaHQtMnhzIiB2aWV3Qm94PSIwIDAgNDggNDgiPgogIDxwYXRoIGQ9Ik0zMCwxSDlBNCw0LDAsMCwwLDUsNVY0M2E0LDQsMCwwLDAsNCw0SDM5YTQsNCwwLDAsMCw0LTRWMTRaIiBmaWxsPSJyZ2IoMTYyLDE2MiwxNjkpIi8+CiAgPHBvbHlnb24gcG9pbnRzPSIzMCAxNCA0MyAxNCAzMCAxIDMwIDE0IiBmaWxsPSJyZ2IoMjE1LDIxNSwyMTgpIi8+CiAgPHJlY3QgeD0iMTEiIHk9IjIwIiB3aWR0aD0iMjYiIGhlaWdodD0iMiIgZmlsbD0icmdiKDIwLCAyMSwgMjYpIi8+CiAgPHJlY3QgeD0iMTEiIHk9IjI2IiB3aWR0aD0iMjYiIGhlaWdodD0iMiIgZmlsbD0icmdiKDIwLCAyMSwgMjYpIi8+CiAgPHJlY3QgeD0iMTEiIHk9IjMyIiB3aWR0aD0iMTQiIGhlaWdodD0iMiIgZmlsbD0icmdiKDIwLCAyMSwgMjYpIi8+Cjwvc3ZnPgo='
+
+// addEventListener version
+window.addEventListener("online", (event) => {
+  console.log("You are now connected to the network.");
+});
+window.addEventListener("offline", (event) => {
+  console.log("You are now offline.");
+});
+
+
 
 // Drag and drop functions
-let fileDropArea = document.getElementById("drag-area");
-let fileDropInput = fileDropArea.querySelector("input#file-input");
+const fileDropArea = document.getElementById("drag-area");
+const fileDropInput = fileDropArea.querySelector("input#file-input");
 fileDropInput.addEventListener("change", handleFiles);
 fileDropArea.addEventListener("click", (() => { fileDropInput.click() }));
 
@@ -250,7 +258,7 @@ async function markPDF(storedFileID, markText, ranges, runs, stamp = false) {
           false,
           false,
           false,
-          0.5,
+          0.75,
           coherentpdf.centreJustify,
           true, false,
           "",

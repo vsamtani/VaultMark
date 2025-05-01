@@ -510,7 +510,7 @@ const model = (() => {
     async storeFile(file) {
       // let blob = await file.arrayBuffer();
       let newFileID = 1 + fileStore.keys().reduce((a, b) => { return a > b ? a : b }, 0);
-      fileStore.set(newFileID, { obj: file, type: 'file' 
+      fileStore.set(newFileID, { obj: file, type: 'file' });
       let metadata = await model.analyseFile(newFileID);
       fileStore.set(newFileID, { obj: file, type: 'file', metadata });
       return newFileID;

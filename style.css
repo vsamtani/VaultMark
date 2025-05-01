@@ -1,6 +1,7 @@
 /* General styling */
 :root {
   --card-width: 460px;
+  --header-height: 7lh;
 }
 
 body {
@@ -21,13 +22,30 @@ body {
   background-color: #ffffff;
   border-radius: 10px;
   box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
-  padding: 24px;
+
   width: var(--card-width);
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 0px;
   transition: all 0.3s ease;
 }
+
+.card-top { 
+display: inherit;
+flex-direction: inherit;
+gap: 16px;
+padding: 24px;
+background-color: #e5e5e7;
+padding: 15px 20px;
+border-radius: 10px 10px 0px 0px
+}
+
+.card-bottom { 
+  display: inherit;
+  flex-direction: inherit;
+  gap: 16px;
+  padding: 15px 20px ;
+  }
 
 .card:hover {
   box-shadow: 0 12px 24px rgba(0, 0, 0, 0.15);
@@ -40,9 +58,10 @@ body {
   color: #1d1d1f;
   margin-bottom: 2px;
   display: flex;
-  align-items: center;
+  align-items: top;
   text-align: left;
   overflow: hidden;
+  justify-content: space-between;
 }
 
 .file-name svg {
@@ -56,15 +75,21 @@ body {
 
 .file-name-text {
   text-overflow: ellipsis;
+  padding-right: 8px;
   overflow: hidden;
   /* text-wrap: nowrap; */
   max-height: 2lh;
 }
 
+.file-name-icons {
+  display: flex;
+}
+
 .file-subtext {
   font-size: 14px;
-  padding: 0px 8px;
+  padding: 0px;
 }
+
 
 /* Input Group Styling */
 .input-group {
@@ -91,7 +116,7 @@ input[type="text"]:focus, input[type="text"]:hover {
   border-bottom: 1px solid #ccc;
 }
 
-button, a, button:focus, a:focus {
+button, a.save-button, button:focus, a.save-button:focus {
   width: 80px; /* Fixed size for all buttons */
   flex-shrink: 0;
   padding: 8px 0;
@@ -108,14 +133,22 @@ button, a, button:focus, a:focus {
 
 }
 
-a:hover, button:hover {
+button:hover {
   background-color: #005fcc;
+}
+
+a.save-button {
+  background-color: #00ffbf;
+}
+
+a.save-button:hover {
+  background-color: #005fcc
 }
 
 /* Status message styling */
 .status-message {
   flex-shrink: 1;
-  padding: 8px;
+  padding: 8px 12px;
   text-align: left;
   font-size: 14px;
   color: #28a745;
@@ -133,7 +166,7 @@ a:hover, button:hover {
   width: 100%; 
   position: fixed;
   top: 0;
-  height: 8lh;
+  height: var(--header-height);
   display: flex;
   flex-flow: column;
   align-items: center;
@@ -141,17 +174,17 @@ a:hover, button:hover {
 }
 
 .drag-area {
-  border: 1px dashed #ee9292;
-  border-radius: 12px;
-  padding: 20px;
+  /* border: 1px solid #ee9292; */
+  border-radius: 2px;
+  padding: 0px;
   text-align: center;
   cursor: pointer;
   background-color: #f5f5f7;
-  transition: background-color 0.3s;
-  width: calc(var(--card-width)*1.1); /* Match the card width on larger screens */
-  position: fixed;
-  top: 2rem;
-  height: 3lh;
+
+  width: calc(var(--card-width)*1.1);
+  position: absolute;
+  top: 10%;
+  height: calc(var(--header-height) * 0.8);
   display: flex;
   flex-flow: row;
   align-items: center;
@@ -159,10 +192,15 @@ a:hover, button:hover {
 }
 
 .drag-area.highlight {
+  border: 1px dashed;
   background-color: #e1f4fe;
   opacity: 0.8;
   border-color: purple;
   backdrop-filter: blur(6px);
+  /* top: 9%;
+  height: calc(var(--header-height) * 0.82);
+  width: calc(var(--card-width)*1.11); */
+  transition: all 0.2s ;
 }
 
 .drag-area p {

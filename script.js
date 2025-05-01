@@ -500,6 +500,7 @@ async function displayFileOnCard(storedFileID_original, storedFileID_new, downlo
   a.href = URL.createObjectURL(await model.getFile(storedFileID_new).obj);
   a.download = downloadFileName;
   a.classList.remove("hidden");
+  a.classList.add("save-button");
 
   group.classList.remove("hidden");
 }

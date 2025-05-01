@@ -51,16 +51,11 @@ function handleFiles(e) {
   if (e.type == 'change') {
     files = this.files;
   }
-  console.log(this, files);
 
   files = [...files];
-  console.log(files, files.length);
 
   files.forEach(async (file) => {
-    console.log("in per-file. ", file, file.name);
     const storedFileID = await model.storeFile(file);
-    console.log(storedFileID);
-
     displayCard(storedFileID);
     processStoredFile(storedFileID);
   });
@@ -515,8 +510,7 @@ const model = (() => {
     async storeFile(file) {
       // let blob = await file.arrayBuffer();
       let newFileID = 1 + fileStore.keys().reduce((a, b) => { return a > b ? a : b }, 0);
-      fileStore.set(newFileID, { obj: file, type: 'file' });
-      console.log("in model. ", newFileID, fileStore);
+      fileStore.set(newFileID, { obj: file, type: 'file' 
       let metadata = await model.analyseFile(newFileID);
       fileStore.set(newFileID, { obj: file, type: 'file', metadata });
       return newFileID;

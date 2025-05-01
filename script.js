@@ -60,6 +60,8 @@ function handleFiles(e) {
     processStoredFile(storedFileID);
   });
 }
+
+
 function displayCard(storedFileID) {
   // display a card for this file
   // if one doesn't exist, clone it.

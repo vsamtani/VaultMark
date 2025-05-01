@@ -14,7 +14,7 @@ body {
   flex-direction: column; /* Stack items vertically */
   row-gap: 20px;
   text-align: center; /* Ensure center alignment for text */
-  margin-top: 8lh;
+  margin-top: 9lh;
 }
 
 .card {
@@ -122,23 +122,40 @@ a:hover, button:hover {
 }
 
 /* Styling for Drag and Drop Area */
+.drag-area-header {
+  border: none;
+  border-radius: 12px;
+  padding: 0;
+  text-align: center;
+  cursor: pointer;
+  background-color: #d5f5f7d0;
+  transition: background-color 0.3s;
+  width: 100%; 
+  position: fixed;
+  top: 0;
+  height: 8lh;
+  display: flex;
+  flex-flow: column;
+  align-items: center;
+  
+}
+
 .drag-area {
-  border: 2px dashed #000;
+  border: 1px dashed #ee9292;
   border-radius: 12px;
   padding: 20px;
   text-align: center;
   cursor: pointer;
   background-color: #f5f5f7;
   transition: background-color 0.3s;
-  width: var(--card-width); /* Match the card width on larger screens */
-  margin-bottom: 20px; /* Space between drag area and card */
+  width: calc(var(--card-width)*1.1); /* Match the card width on larger screens */
   position: fixed;
   top: 2rem;
   height: 3lh;
   display: flex;
   flex-flow: row;
   align-items: center;
-  box-shadow: 0 16px 32px rgba(0, 0, 0, 0.1);
+  /* box-shadow: 0 16px 32px rgba(0, 0, 0, 0.1); */
 }
 
 .drag-area.highlight {

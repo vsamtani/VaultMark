@@ -51,33 +51,31 @@ function handleFiles(e) {
   if (e.type == 'change') {
     files = this.files;
   }
-  console.log(this , files);
+  console.log(this, files);
 
   files = [...files];
   console.log(files, files.length);
-  
+
   files.forEach(async (file) => {
     console.log("in per-file. ", file, file.name);
     const storedFileID = await model.storeFile(file);
     console.log(storedFileID);
 
-    // display a card for this file
-    // if one doesn't exist, clone it.
-
-    displayCard(storedFileID, file.name);
+    displayCard(storedFileID);
     processStoredFile(storedFileID);
   });
 }
-function displayCard(storedFileID, title) {
+function displayCard(storedFileID) {
   // display a card for this file
   // if one doesn't exist, clone it.
   let metadata = model.getFile(storedFileID).metadata;
 
   let card = document.querySelector("#card-id-" + storedFileID);
   if (card === null) {
-    card = document.querySelector(".card#file-card").cloneNode(true);
+    let blankCard = document.querySelector(".card#file-card"); 
+    card = blankCard.cloneNode(true);
     card.id = "card-id-" + storedFileID;
-    fileDropArea.insertAdjacentElement('afterend', card);
+    blankCard.insertAdjacentElement('afterend', card);
   }
 
   card.classList.remove("hidden");
@@ -86,7 +84,7 @@ function displayCard(storedFileID, title) {
   // File icons
   metadata.isPDF && card.querySelector(".file-name svg path#pdf").classList.remove("hidden");
   metadata.isZip && card.querySelector(".file-name svg path#zip").classList.remove("hidden");
-  (!metadata.isZip) && (!metadata.isPDF) && card.querySelector(".file-name svg path#generic").classList.remove("hidden");
+  !metadata.isZip && !metadata.isPDF && card.querySelector(".file-name svg path#generic").classList.remove("hidden");
 
   (metadata.isEncryptedZip || metadata.isEncryptedPDF) ?
     card.querySelector(".file-name svg path#locked").classList.remove("hidden") :
@@ -113,7 +111,7 @@ async function processStoredFile(storedFileID, inputPassword = "", actions = ['o
   // let metadata.fName = f.name;
   let metadata = await model.getFile(storedFileID).metadata;
 
-  displayCard(storedFileID, metadata.fName);
+  // displayCard(storedFileID, metadata.fName);
   let card = document.querySelector("#card-id-" + storedFileID);
   inputPassword = (actions.includes('open')) ? card.querySelector("input#decrypt-input").value.trim() : "";
 
@@ -451,6 +449,7 @@ async function cryptPDF(storedFileID, decryption_pw = "", encryption_pw = "", un
   // will try to decrypt first
   // then encrypt 
   // will always try to set owner permissions with a random password.
+  console.log("in cryptPDF");
   let permissions = [coherentpdf.noAnnot, coherentpdf.noAssemble, coherentpdf.noCopy, coherentpdf.noEdit, coherentpdf.noExtract, coherentpdf.noForms];
   let encryption = coherentpdf.aes256bitisotrue;
   let f = await model.getFile(storedFileID).obj;
@@ -464,12 +463,13 @@ async function cryptPDF(storedFileID, decryption_pw = "", encryption_pw = "", un
   } catch (error) {
     decryptionSuccess = false;
   };
-  try {
-    coherentpdf.decryptPdf(pdf, "");
-    decryptionSuccess = true;
-  } catch (error) {
-    decryptionSuccess = false;
-
+  if (!decryptionSuccess) {
+    try {
+      coherentpdf.decryptPdf(pdf, "");
+      decryptionSuccess = true;
+    } catch (error) {
+      decryptionSuccess = false;
+    }
   }
   if (!decryptionSuccess) return null;
 

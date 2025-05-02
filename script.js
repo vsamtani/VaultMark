@@ -107,7 +107,10 @@ function displayCard(storedFileID) {
       ) :
       metadata.isZip ?
         (metadata.isEncryptedZip ?
-          "Zip file locked with a password" :
+          (metadata.zipFileCount == 1 ?
+            "Single file locked in a Zip file" :
+            "Zip file locked with a password"
+          ) :
           "Zip file with no password"
         ) :
         "Ordinary file, to be locked in a Zip file"
@@ -202,14 +205,14 @@ async function processStoredFile(storedFileID, inputPassword = "", actions = ['o
     if (!metadata.isEncryptedZip && actions.includes('protect')) {
       let pw = generatePassword();
       const encryptedZipID = await cryptZip(storedFileID, true, true, pw);
-      displayFileOnCard(storedFileID, encryptedZipID, "PASSWORD-PROTECTED " + metadata.fName, ".encrypt-group", `Locked with password: <br><strong>${pw}</strong>`);
+      displayFileOnCard(storedFileID, encryptedZipID, metadata.fName, ".encrypt-group", `Locked with password: <br><strong>${pw}</strong>`);
     };
 
     if (metadata.isEncryptedZip && actions.includes('open')) {
       let canDecryptZip = await (metadata.isZip && isZipDecryptable(storedFileID, inputPassword));
       if (canDecryptZip) {
         const decryptedZipID = await cryptZip(storedFileID, true, false, inputPassword);
-        displayFileOnCard(storedFileID, decryptedZipID, "PASSWORD-REMOVED " + metadata.fName, ".decrypt-group", "Password removed");
+        displayFileOnCard(storedFileID, decryptedZipID, metadata.fName, ".decrypt-group", "Password removed");
       } else {
         passwordField.value = "";
         if (inputPassword !== '') passwordField.placeholder = "Could not open with '" + inputPassword + "'";
@@ -222,7 +225,7 @@ async function processStoredFile(storedFileID, inputPassword = "", actions = ['o
     // ordinary file, chuck it into a zip
     let pw = generatePassword();
     const encryptedZipID = await cryptZip(storedFileID, false, true, pw);
-    displayFileOnCard(storedFileID, encryptedZipID, "PASSWORD-PROTECTED " + metadata.fName + ".zip", '.decrypt-group', `Locked with password: <br><strong>${pw}</strong>`);
+    displayFileOnCard(storedFileID, encryptedZipID,  metadata.fName, '.decrypt-group', `Locked with password: <br><strong>${pw}</strong>`);
   };
 
   // card.querySelector(".file-name-subtext").innerHTML = subText;
@@ -453,7 +456,7 @@ async function cryptZip(storedFileID, isZip, encrypt = true, password, options =
 
   let metadata = model.getFile(storedFileID).metadata;
 
-  if (metadata.isZip && metadata.zipFileCount > 1) {
+  if (metadata.isZip && !(metadata.isEncryptedZip && metadata.zipFileCount == 1)) {
     const entries = await model.getEntriesFromStoredFile(storedFileID, options);
     var newFileID = await model.createEmptyZip();
     for (e in entries) {
@@ -463,12 +466,14 @@ async function cryptZip(storedFileID, isZip, encrypt = true, password, options =
     model.getFile(newFileID).metadata.fName = (encrypt ? "PASSWORD-PROTECTED " : "PASSWORD-REMOVED ") + metadata.fName;
   }
 
-  if (metadata.isZip && metadata.zipFileCount == 1) {
-    // just one file
+  if (metadata.isZip && metadata.isEncryptedZip && metadata.zipFileCount == 1) {
+    // extracting just one file
     const entries = await model.getEntriesFromStoredFile(storedFileID, options);
     let e = entries.filter((e) => !e.directory)[0];
-    var newFileID = await extractEntry(e);
-    model.getFile(newFileID).metadata.fName = e.filename;
+    var newFileID = await extractEntryToFile(e);
+    //  We can check at this point if the file 
+    // we've just extracted is another zip file, is also encrypted, etc.
+    console.log(model.getFile(newFileID).metadata);
   }
 
   if (!metadata.isZip) {
@@ -478,15 +483,16 @@ async function cryptZip(storedFileID, isZip, encrypt = true, password, options =
     var newFileID = await model.createEmptyZip();
     await model.addFileToZip(f, newFileID, writingOptions);
     await model.closeZip(newFileID);
-    model.getFile(newFileID).metadata.fName = "PASSWORD-PROTECTED " + metadata.fName;
+    model.getFile(newFileID).metadata.fName = "PASSWORD-PROTECTED " + metadata.fName + ".zip";
   }
-  
+
   return newFileID;
 
-  async function extractEntry(e) {
+  async function extractEntryToFile(e) {
     let entryBlob = await model.getEntryContent(e, readingOptions);
     let f = new File([entryBlob], e.filename);
     let newFileID = await model.storeFile(f);
+    model.getFile(newFileID).metadata.fName = e.filename;
     return newFileID;
   }
 
@@ -661,6 +667,15 @@ const model = (() => {
       let f = model.getFile(fileID).obj;
       metadata.isZip = (f.type == 'application/zip' || f.type == 'application/x-zip-compressed');
       metadata.isPDF = (f.type == 'application/pdf');
+      
+      if (f.type == '') {
+        // try to guess from extension
+        let ext = f.name.split('.');
+        (ext.length > 1) ? ext = ext.pop().toLowerCase() : ext = "";
+        metadata.isZip = (ext == 'zip');
+        metadata.isPDF = (ext == 'pdf');
+      }
+      
       metadata.fName = f.name;
 
 

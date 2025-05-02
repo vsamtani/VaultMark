@@ -1,6 +1,6 @@
 /* General styling */
 :root {
-  --card-width: 460px;
+  --card-width: 360px;
   --header-height: 7lh;
 }
 
@@ -12,9 +12,11 @@ body {
   justify-content: center;
   align-items: center;
   margin: 3vh 3vw;
-  flex-direction: column; /* Stack items vertically */
+  flex-direction: column;
+  /* Stack items vertically */
   row-gap: 20px;
-  text-align: center; /* Ensure center alignment for text */
+  text-align: center;
+  /* Ensure center alignment for text */
   margin-top: 9lh;
 }
 
@@ -22,30 +24,30 @@ body {
   background-color: #ffffff;
   border-radius: 10px;
   box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
-
   width: var(--card-width);
   display: flex;
   flex-direction: column;
   gap: 0px;
-  transition: all 0.3s ease;
+  transition: all 0.2s;
 }
 
-.card-top { 
-display: inherit;
-flex-direction: inherit;
-gap: 16px;
-padding: 24px;
-background-color: #e5e5e7;
-padding: 15px 20px;
-border-radius: 10px 10px 0px 0px
-}
-
-.card-bottom { 
+.card-top {
   display: inherit;
   flex-direction: inherit;
   gap: 16px;
-  padding: 15px 20px ;
-  }
+  padding: 24px;
+  background-color: #e5e5d7;
+  padding: 15px 20px;
+  border-radius: 10px 10px 0px 0px
+}
+
+.card-bottom {
+  display: inherit;
+  flex-direction: inherit;
+  gap: 16px;
+  padding: 15px 20px;
+
+}
 
 .card:hover {
   box-shadow: 0 12px 24px rgba(0, 0, 0, 0.15);
@@ -68,7 +70,7 @@ border-radius: 10px 10px 0px 0px
   margin-right: 8px;
   flex-shrink: 0;
   height: 30px;
-  fill: #85B09A;
+  fill: #02104d;
   fill-rule: evenodd;
   clip-rule: evenodd;
 }
@@ -95,29 +97,37 @@ border-radius: 10px 10px 0px 0px
 .input-group {
   display: flex;
   align-items: center;
-  justify-content: space-between; /* Align input left, button right */
+  justify-content: space-between;
+  /* Align input left, button right */
   gap: 8px;
   width: 100%;
+  height: 2lh;
 }
 
 input[type="text"] {
   flex-grow: 1;
-  min-width: 0; /* Prevents overflow */
+  min-width: 0;
+  /* Prevents overflow */
   padding: 8px 12px;
   border: 0px solid #ccc;
   border-bottom: 1px solid #000;
   font-size: 14px;
 }
 
-input[type="text"]:focus, input[type="text"]:hover {
+input[type="text"]:focus,
+input[type="text"]:hover {
   outline: none;
   background-color: #ccc;
   border-radius: 8px;
   border-bottom: 1px solid #ccc;
 }
 
-button, a.save-button, button:focus, a.save-button:focus {
-  width: 80px; /* Fixed size for all buttons */
+button,
+a.save-button,
+button:focus,
+a.save-button:focus {
+  width: 80px;
+  /* Fixed size for all buttons */
   flex-shrink: 0;
   padding: 8px 0;
   background-color: #007aff;
@@ -163,14 +173,14 @@ a.save-button:hover {
   cursor: pointer;
   background-color: #d5f5f7d0;
   transition: background-color 0.3s;
-  width: 100%; 
+  width: 100%;
   position: fixed;
   top: 0;
   height: var(--header-height);
   display: flex;
   flex-flow: column;
   align-items: center;
-  
+
 }
 
 .drag-area {
@@ -192,7 +202,8 @@ a.save-button:hover {
 }
 
 .drag-area.highlight {
-  border: 1px dashed;
+  border: 8px  dashed;
+  border-radius:10px;
   background-color: #e1f4fe;
   opacity: 0.8;
   border-color: purple;
@@ -200,7 +211,7 @@ a.save-button:hover {
   /* top: 9%;
   height: calc(var(--header-height) * 0.82);
   width: calc(var(--card-width)*1.11); */
-  transition: all 0.2s ;
+  transition: all 0.1s;
 }
 
 .drag-area p {
@@ -214,20 +225,25 @@ a.save-button:hover {
 
 
 /* Media Query for Mobile */
-@media (max-width: 520px ) {
+@media (max-width: 520px) {
   .card {
     width: 90%;
     padding: 16px;
   }
- 
+
   /* Styling for Drag and Drop Area */
   .drag-area {
-    width: 90%; /* Adjust width to 90% of parent container */
-    padding: 15px; /* Reduce padding for small screens */
-    font-size: 14px; /* Adjust font size for smaller screens */
-    margin-bottom: 20px; /* Space between drag area and card */
+    width: 90%;
+    /* Adjust width to 90% of parent container */
+    padding: 15px;
+    /* Reduce padding for small screens */
+    font-size: 14px;
+    /* Adjust font size for smaller screens */
+    margin-bottom: 20px;
+    /* Space between drag area and card */
   }
 }
+
 /* Hidden class - placed last to override preceding */
 .hidden {
   display: none;

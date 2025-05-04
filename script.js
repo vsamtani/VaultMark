@@ -1,27 +1,68 @@
+// VaultMark
+// Copyright (C) 2025 Vijay Samtani
+// Acknowledgements:
+// - John Whitington: https://github.com/coherentgraphics/coherentpdf.js
+// - Gildas Lormeau: https://github.com/gildas-lormeau/zip.js
 
-// addEventListener version
-window.addEventListener("online", (event) => {
-  console.log("You are now connected to the network.");
-});
-window.addEventListener("offline", (event) => {
-  console.log("You are now offline.");
-});
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU Affero General Public License as published
+// by the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
 
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU Affero General Public License for more details.
 
+// You should have received a copy of the GNU Affero General Public License
+// along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 // Drag and drop functions
 const fileDropArea = document.getElementById("drag-area");
-const fileDropInput = fileDropArea.querySelector("input#file-input");
+const fileDropArea_U = document.getElementById("drag-area-underlay");
+const fileDropInput = document.querySelector("input#file-input");
+
+const fileSelectButton = document.querySelector("header button.file-select-button");
+fileSelectButton.addEventListener("click", (() => { fileDropInput.click() }));
+
 fileDropInput.addEventListener("change", handleFiles);
-fileDropArea.addEventListener("click", (() => { fileDropInput.click() }));
+
+// fileDropArea.addEventListener("click", (() => { fileDropInput.click() }));
+window.addEventListener("blur", deactivateDropZone, false);
 
 // Prevent default drag behaviours, and handle drag events
-["dragenter", "dragover", "dragleave", "drop"].forEach((eventName) => {
+["dragenter", "dragover"].forEach((eventName) => {
   window.addEventListener(eventName, preventDefaults, false);
-  window.addEventListener(eventName, deactivateDropZone, false);
   fileDropArea.addEventListener(eventName, preventDefaults, false);
-  fileDropArea.addEventListener(eventName, activateDropZone, false)
+  fileDropArea.addEventListener(eventName, activateDropZone, false);
+  // fileDropArea_U.addEventListener(eventName, preventDefaults, false);
+  // fileDropArea_U.addEventListener(eventName, activateDropZone, false);
 });
+
+["dragleave"].forEach((eventName) => {
+  window.addEventListener(eventName, preventDefaults, false);
+//   window.addEventListener(eventName, deactivateDropZone, false);
+  fileDropArea.addEventListener(eventName, preventDefaults, false);
+  fileDropArea.addEventListener(eventName, deactivateDropZone, false);
+});
+
+["drop"].forEach((eventName) => {
+  window.addEventListener(eventName, preventDefaults, false);
+  fileDropArea.addEventListener(eventName, preventDefaults, false);
+  fileDropArea.addEventListener(eventName, activateDropZone, false);
+
+});
+
+// ["dragleave", "drop"].forEach((eventName) => {
+//   window.addEventListener(eventName, preventDefaults, false);
+//   // window.addEventListener(eventName, deactivateDropZone, false);
+//   fileDropArea.addEventListener(eventName, preventDefaults, false);
+//   // fileDropArea.addEventListener(eventName, activateDropZone, false);
+
+//   fileDropArea_U.addEventListener(eventName, preventDefaults, false);
+//   // fileDropArea_U.addEventListener(eventName, activateDropZone, false);
+// });
+
 
 // Handle dropped files
 function preventDefaults(e) {
@@ -71,9 +112,10 @@ function handleFiles(e) {
 }
 
 
-function displayCard(storedFileID) {
+async function displayCard(storedFileID) {
   // display a card for this file
   // if one doesn't exist, clone it.
+  document.getElementById("introContent").classList.add("hidden");
   let metadata = model.getFile(storedFileID).metadata;
 
   let card = document.querySelector("#card-id-" + storedFileID);
@@ -108,7 +150,7 @@ function displayCard(storedFileID) {
       metadata.isZip ?
         (metadata.isEncryptedZip ?
           (metadata.zipFileCount == 1 ?
-            "Single file locked in a Zip file" :
+            "Single file in a locked Zip file" :
             "Zip file locked with a password"
           ) :
           "Zip file with no password"
@@ -131,6 +173,9 @@ function displayCard(storedFileID) {
     b.addEventListener("click", click_handler);
     inp.addEventListener("keypress", (event) => { if (event.key === "Enter") { event.preventDefault(); b.click(); } });
   });
+
+  // Add a drag and drop listener because we've covered some of the drop zone
+  card.addEventListener("dragover", activateDropZone, false);
 };
 
 async function processStoredFile(storedFileID, inputPassword = "", actions = ['open', 'unprotect', 'protect']) {
@@ -205,14 +250,14 @@ async function processStoredFile(storedFileID, inputPassword = "", actions = ['o
     if (!metadata.isEncryptedZip && actions.includes('protect')) {
       let pw = generatePassword();
       const encryptedZipID = await cryptZip(storedFileID, true, true, pw);
-      displayFileOnCard(storedFileID, encryptedZipID, metadata.fName, ".encrypt-group", `Locked with password: <br><strong>${pw}</strong>`);
+      displayFileOnCard(storedFileID, encryptedZipID, model.getFile(encryptedZipID).metadata.fName, ".encrypt-group", `Locked with password: <br><strong>${pw}</strong>`);
     };
 
     if (metadata.isEncryptedZip && actions.includes('open')) {
       let canDecryptZip = await (metadata.isZip && isZipDecryptable(storedFileID, inputPassword));
       if (canDecryptZip) {
         const decryptedZipID = await cryptZip(storedFileID, true, false, inputPassword);
-        displayFileOnCard(storedFileID, decryptedZipID, metadata.fName, ".decrypt-group", "Password removed");
+        displayFileOnCard(storedFileID, decryptedZipID, model.getFile(decryptedZipID).metadata.fName, ".decrypt-group", "Password removed");
       } else {
         passwordField.value = "";
         if (inputPassword !== '') passwordField.placeholder = "Could not open with '" + inputPassword + "'";
@@ -225,7 +270,7 @@ async function processStoredFile(storedFileID, inputPassword = "", actions = ['o
     // ordinary file, chuck it into a zip
     let pw = generatePassword();
     const encryptedZipID = await cryptZip(storedFileID, false, true, pw);
-    displayFileOnCard(storedFileID, encryptedZipID,  metadata.fName, '.decrypt-group', `Locked with password: <br><strong>${pw}</strong>`);
+    displayFileOnCard(storedFileID, encryptedZipID, model.getFile(encryptedZipID).metadata.fName, '.decrypt-group', `Locked with password: <br><strong>${pw}</strong>`);
   };
 
   // card.querySelector(".file-name-subtext").innerHTML = subText;
@@ -464,6 +509,12 @@ async function cryptZip(storedFileID, isZip, encrypt = true, password, options =
     };
     await model.closeZip(newFileID);
     model.getFile(newFileID).metadata.fName = (encrypt ? "PASSWORD-PROTECTED " : "PASSWORD-REMOVED ") + metadata.fName;
+// if we've just encrypted a multi-file zip, we could now put that into an outer zip
+let new_metadata = model.getFile(newFileID).metadata;
+if (encrypt && new_metadata.zipFileCount > 1) { var doubleLockedZip = await cryptZip}
+// if we've just decrypted a zip and what's inside is a single-file zip, we could unzip that too
+
+
   }
 
   if (metadata.isZip && metadata.isEncryptedZip && metadata.zipFileCount == 1) {
@@ -473,7 +524,6 @@ async function cryptZip(storedFileID, isZip, encrypt = true, password, options =
     var newFileID = await extractEntryToFile(e);
     //  We can check at this point if the file 
     // we've just extracted is another zip file, is also encrypted, etc.
-    console.log(model.getFile(newFileID).metadata);
   }
 
   if (!metadata.isZip) {
@@ -484,6 +534,8 @@ async function cryptZip(storedFileID, isZip, encrypt = true, password, options =
     await model.addFileToZip(f, newFileID, writingOptions);
     await model.closeZip(newFileID);
     model.getFile(newFileID).metadata.fName = "PASSWORD-PROTECTED " + metadata.fName + ".zip";
+
+    // Double lock - put the zip 
   }
 
   return newFileID;
@@ -639,8 +691,9 @@ async function displayFileOnCard(storedFileID_original, storedFileID_new, downlo
   a.innerHTML = "Save";
   a.href = URL.createObjectURL(await model.getFile(storedFileID_new).obj);
   a.download = downloadFileName;
-  a.classList.remove("hidden");
   a.classList.add("save-button");
+  a.classList.remove("hidden");
+
 
   group.classList.remove("hidden");
 }
@@ -667,7 +720,7 @@ const model = (() => {
       let f = model.getFile(fileID).obj;
       metadata.isZip = (f.type == 'application/zip' || f.type == 'application/x-zip-compressed');
       metadata.isPDF = (f.type == 'application/pdf');
-      
+
       if (f.type == '') {
         // try to guess from extension
         let ext = f.name.split('.');
@@ -675,7 +728,7 @@ const model = (() => {
         metadata.isZip = (ext == 'zip');
         metadata.isPDF = (ext == 'pdf');
       }
-      
+
       metadata.fName = f.name;
 
 
@@ -709,13 +762,11 @@ const model = (() => {
         // var canDecryptPDF;
         if (orig_encrypted) {
           try {
-            console.log(coherentpdf.encryptionKind(pdf));
             coherentpdf.decryptPdf(pdf, "");
             metadata.isProtectedPDF = true;
             metadata.canDecryptPDF = true;
-            console.log("Owner protection can be removed");
+            // console.log("Owner protection can be removed");
           } catch (e) {
-            console.log(e);
             metadata.isEncryptedPDF = true;
             metadata.canDecryptPDF = false;
           }
@@ -799,11 +850,12 @@ const model = (() => {
     async testZip(storedFileID) {
       const entries = await model.getEntriesFromStoredFile(storedFileID);
       if (entries === null) { return ({ valid: false, encrypted: null, files: null }) } else {
-        entries.filter((e) => !e.directory).length
+        // entries.filter((e) => !e.directory).length
         return ({
           valid: true,
           encrypted: entries.some((e) => !e.directory && e.encrypted),
           files: entries.filter((e) => !e.directory).length
+          doubleLocked: entries.filter((e) => !e.directory).length == 1 && entries.filter((e) => !e.directory).  
         });
       }
     },

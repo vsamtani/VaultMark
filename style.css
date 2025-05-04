@@ -1,7 +1,7 @@
 /* General styling */
 :root {
   --card-width: 360px;
-  --header-height: 7lh;
+  --header-height: 10vh;
 }
 
 body {
@@ -11,14 +11,84 @@ body {
   display: flex;
   justify-content: center;
   align-items: center;
-  margin: 3vh 3vw;
+  margin: 8lh 3vw;
   flex-direction: column;
   /* Stack items vertically */
   row-gap: 20px;
   text-align: center;
-  /* Ensure center alignment for text */
-  margin-top: 9lh;
+  pointer-events: none;
 }
+
+header {
+  background-color: #1e1e2f;
+  color: white;
+  padding: 2rem 1rem;
+  text-align: left;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+}
+
+button.file-select-button {
+  display: inline-block;
+  position: absolute;
+  top: 30%;
+  right: 5rem;
+  background-color: #2e8b57;
+  color: white;
+  border: none;
+  padding: 0.75rem 1.5rem;
+  text-decoration: none;
+  border-radius: 6px;
+  font-size: 22px;
+  font-weight: 600;
+  cursor: pointer;
+  pointer-events: auto;
+}
+
+
+header h1 {
+  margin: 0 0 0.5rem;
+  font-size: 2rem;
+}
+
+header p {
+  font-size: 1.125rem;
+  margin: 0;
+}
+
+
+main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 2rem 1rem;
+  text-align: left;
+}
+
+section {
+  max-width: 800px;
+  width: 100%;
+}
+
+h2 {
+  font-size: 1.5rem;
+  margin-top: 2rem;
+}
+
+ul {
+  list-style: none;
+  padding: 0;
+}
+
+ul li::before {
+  content: '✔';
+  margin-right: 0.5rem;
+  color: #2e8b57;
+}
+
 
 .card {
   background-color: #ffffff;
@@ -28,7 +98,7 @@ body {
   display: flex;
   flex-direction: column;
   gap: 0px;
-  transition: all 0.2s;
+  pointer-events: auto;
 }
 
 .card-top {
@@ -41,7 +111,7 @@ body {
   border-radius: 10px 10px 0px 0px
 }
 
-.card-bottom {
+.card-inputs {
   display: inherit;
   flex-direction: inherit;
   gap: 16px;
@@ -122,9 +192,9 @@ input[type="text"]:hover {
   border-bottom: 1px solid #ccc;
 }
 
-button,
+.card button,
 a.save-button,
-button:focus,
+.card button:focus,
 a.save-button:focus {
   width: 80px;
   /* Fixed size for all buttons */
@@ -143,7 +213,7 @@ a.save-button:focus {
 
 }
 
-button:hover {
+.card button:hover {
   background-color: #005fcc;
 }
 
@@ -184,26 +254,31 @@ a.save-button:hover {
 }
 
 .drag-area {
-  /* border: 1px solid #ee9292; */
-  border-radius: 2px;
-  padding: 0px;
-  text-align: center;
-  cursor: pointer;
-  background-color: #f5f5f7;
+  border: none;
+  position: fixed;
+  top: 16%;
+  width: 90%;
+  height: 74%;
+  z-index: -10;
+  pointer-events: auto;
+  opacity: 0;
+  xdisplay: none;
 
-  width: calc(var(--card-width)*1.1);
-  position: absolute;
-  top: 10%;
-  height: calc(var(--header-height) * 0.8);
-  display: flex;
-  flex-flow: row;
-  align-items: center;
-  /* box-shadow: 0 16px 32px rgba(0, 0, 0, 0.1); */
+}
+
+.drag-area-underlay {
+  border: 0px solid #000;
+  position: fixed;
+  top: 5dvh;
+  width: 90%;
+  height: 90dvh;
+  z-index: -30;
+  pointer-events: auto;
 }
 
 .drag-area.highlight {
-  border: 8px  dashed;
-  border-radius:10px;
+  border: 1px dashed;
+  border-radius: 10px;
   background-color: #e1f4fe;
   opacity: 0.8;
   border-color: purple;
@@ -212,6 +287,9 @@ a.save-button:hover {
   height: calc(var(--header-height) * 0.82);
   width: calc(var(--card-width)*1.11); */
   transition: all 0.1s;
+  pointer-events: auto;
+  z-index: 100;
+  display: revert;
 }
 
 .drag-area p {
@@ -223,6 +301,26 @@ a.save-button:hover {
   width: 100%;
 }
 
+footer {
+  background-color: rgba(30, 30, 47, 0.9);
+  backdrop-filter: blur(6px);
+  color: white;
+  text-align: center;
+  padding: 1vh;
+  /* padding: 1rem; */
+  font-size: clamp(3px, 1.5vh, 1000px);
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  z-index: 100;
+}
+
+nav a {
+  margin: 0 1vh;
+  color: #2e8b57;
+  text-decoration: none;
+}
 
 /* Media Query for Mobile */
 @media (max-width: 520px) {

@@ -297,7 +297,7 @@ async function processStoredFile(storedFileID, inputPassword = "", actions = ['o
     };
 
     if (metadata.isEncryptedZip && actions.includes('open')) {
-      let canDecryptZip = await (metadata.isZip && isZipDecryptable(storedFileID, inputPassword));
+      let canDecryptZip = await (metadata.isZip && model.isZipDecryptable(storedFileID, inputPassword));
       if (canDecryptZip) {
         const decryptedZipID = await model.cryptZip(storedFileID, true, false, inputPassword);
         displayFileOnCard(storedFileID, decryptedZipID, model.getFile(decryptedZipID).metadata.fName, ".decrypt-group", "Password removed");
@@ -371,22 +371,7 @@ function generatePassword(minimumEntropy = 70) {
 
 
 
-async function isZipDecryptable(storedFileID, password) {
-  const entries = await model.getEntriesFromStoredFile(storedFileID);
 
-  for (e in entries) {
-    if (entries[e].encrypted) {
-      // if any entry fails, we can't decrypt
-      try {
-        await model.getEntryContent(entries[e], { password: password, checkPasswordOnly: true });
-      } catch (e) {
-        return false;
-      }
-    }
-  }
-  // if we got here with no errors
-  return true;
-}
 
 
 
@@ -539,7 +524,7 @@ const model = (() => {
   }
 
   async function testZip(storedFileID) {
-    const entries = await model.getEntriesFromStoredFile(storedFileID);
+    const entries = await getEntriesFromStoredFile(storedFileID);
     if (entries === null) { return ({ valid: false, encrypted: null, files: null }) } else {
       // entries.filter((e) => !e.directory).length
       return ({
@@ -653,6 +638,22 @@ const model = (() => {
     };
   }
   
+  async function isZipDecryptable(storedFileID, password) {
+    const entries = await getEntriesFromStoredFile(storedFileID);
+  
+    for (e in entries) {
+      if (entries[e].encrypted) {
+        // if any entry fails, we can't decrypt
+        try {
+          await getEntryContent(entries[e], { password: password, checkPasswordOnly: true });
+        } catch (e) {
+          return false;
+        }
+      }
+    }
+    // if we got here with no errors
+    return true;
+  }
 
   async function cryptPDF(storedFileID, decryption_pw = "", encryption_pw = "", unProtect = false) {
     // will try to decrypt first
@@ -858,12 +859,13 @@ const model = (() => {
   return {
     storeFile,
     getFile,
-    getEntriesFromStoredFile,
-    getEntryContent,
-    createEmptyZip,
-    addFileToZip,
-    addDirToZip,
-    closeZip,
+    // getEntriesFromStoredFile,
+    // getEntryContent,
+    // createEmptyZip,
+    // addFileToZip,
+    // addDirToZip,
+    isZipDecryptable,
+    // closeZip,
     cryptZip, 
     cryptPDF,
     markPDF

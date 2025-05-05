@@ -292,14 +292,14 @@ async function processStoredFile(storedFileID, inputPassword = "", actions = ['o
   if (metadata.isZip) {
     if (!metadata.isEncryptedZip && actions.includes('protect')) {
       let pw = generatePassword();
-      const encryptedZipID = await cryptZip(storedFileID, true, true, pw);
+      const encryptedZipID = await model.cryptZip(storedFileID, true, true, pw);
       displayFileOnCard(storedFileID, encryptedZipID, model.getFile(encryptedZipID).metadata.fName, ".encrypt-group", `Locked with password: <br><strong>${pw}</strong>`);
     };
 
     if (metadata.isEncryptedZip && actions.includes('open')) {
       let canDecryptZip = await (metadata.isZip && isZipDecryptable(storedFileID, inputPassword));
       if (canDecryptZip) {
-        const decryptedZipID = await cryptZip(storedFileID, true, false, inputPassword);
+        const decryptedZipID = await model.cryptZip(storedFileID, true, false, inputPassword);
         displayFileOnCard(storedFileID, decryptedZipID, model.getFile(decryptedZipID).metadata.fName, ".decrypt-group", "Password removed");
       } else {
         passwordField.value = "";
@@ -311,7 +311,7 @@ async function processStoredFile(storedFileID, inputPassword = "", actions = ['o
   if (!metadata.isPDF && !metadata.isZip && actions.includes('protect')) {
     // ordinary file, chuck it into a zip
     let pw = generatePassword();
-    const encryptedZipID = await cryptZip(storedFileID, false, true, pw);
+    const encryptedZipID = await model.cryptZip(storedFileID, false, true, pw);
     displayFileOnCard(storedFileID, encryptedZipID, model.getFile(encryptedZipID).metadata.fName, '.encrypt-group', `Locked with password: <br><strong>${pw}</strong>`);
   };
 
@@ -522,81 +522,6 @@ async function isZipDecryptable(storedFileID, password) {
   return true;
 }
 
-async function cryptZip(storedFileID, isZip, encrypt = true, password, options = {}) {
-
-  // Here's what the function should do
-  // if storedFileID is an encrypted Zip, decrypt it
-  // decrypt it to a zip if it has >1 file
-  // decrypt it to a file if it has 1 file
-  // if storedFileID is an unencrypted Zip, encrypt it, and then offer to double lock it
-  // if storedFileID is not a zip, put it in an encrypted zip
-
-
-  // const fName = await model.getFile(storedFileID);
-  // const newFileID = await model.createEmptyZip();
-  let passwordOptions = Object.assign({ ...options }, { password: password });
-  const writingOptions = encrypt ? passwordOptions : options;
-  const readingOptions = encrypt ? options : passwordOptions;
-  let dirOptions = Object.assign({ ...options }, { directory: true });
-
-  let metadata = model.getFile(storedFileID).metadata;
-
-  if (metadata.isZip && !(metadata.isEncryptedZip && metadata.zipFileCount == 1)) {
-    const entries = await model.getEntriesFromStoredFile(storedFileID, options);
-    var newFileID = await model.createEmptyZip();
-    for (e in entries) {
-      await transferEntry(entries[e]);
-    };
-    await model.closeZip(newFileID);
-    model.getFile(newFileID).metadata.fName = (encrypt ? "PASSWORD-PROTECTED " : "PASSWORD-REMOVED ") + metadata.fName;
-    // if we've just encrypted a multi-file zip, we could now put that into an outer zip
-    // let new_metadata = model.getFile(newFileID).metadata;
-    // if (encrypt && new_metadata.zipFileCount > 1) { var doubleLockedZip = await cryptZip}
-    // if we've just decrypted a zip and what's inside is a single-file zip, we could unzip that too
-
-
-  }
-
-  if (metadata.isZip && metadata.isEncryptedZip && metadata.zipFileCount == 1) {
-    // extracting just one file
-    const entries = await model.getEntriesFromStoredFile(storedFileID, options);
-    let e = entries.filter((e) => !e.directory)[0];
-    var newFileID = await extractEntryToFile(e);
-    //  We can check at this point if the file 
-    // we've just extracted is another zip file, is also encrypted, etc.
-  }
-
-  if (!metadata.isZip) {
-    // if it's just a plain old file
-    let blob = model.getFile(storedFileID).obj
-    let f = new File([blob], blob.name);
-    var newFileID = await model.createEmptyZip();
-    await model.addFileToZip(f, newFileID, writingOptions);
-    await model.closeZip(newFileID);
-    model.getFile(newFileID).metadata.fName = "PASSWORD-PROTECTED " + metadata.fName + ".zip";
-
-  }
-
-  return newFileID;
-
-  async function extractEntryToFile(e) {
-    let entryBlob = await model.getEntryContent(e, readingOptions);
-    let f = new File([entryBlob], e.filename);
-    let newFileID = await model.storeFile(f);
-    model.getFile(newFileID).metadata.fName = e.filename;
-    return newFileID;
-  }
-
-  async function transferEntry(e) {
-    if (!e.directory) {
-      let entryBlob = await model.getEntryContent(e, readingOptions);
-      let f = new File([entryBlob], e.filename);
-      return model.addFileToZip(f, newFileID, writingOptions);
-    } else {
-      return model.addDirToZip(e.filename, newFileID, dirOptions)
-    };
-  };
-}
 
 
 const model = (() => {
@@ -786,6 +711,83 @@ const model = (() => {
     // return await fileStore.set(zipFileID, { obj: await zipWriter.close(), type: 'file' }).has(zipFileID) ? zipFileID : 0
   }
 
+  async function cryptZip(storedFileID, isZip, encrypt = true, password, options = {}) {
+
+    // Here's what the function should do
+    // if storedFileID is an encrypted Zip, decrypt it
+    // decrypt it to a zip if it has >1 file
+    // decrypt it to a file if it has 1 file
+    // if storedFileID is an unencrypted Zip, encrypt it, and then offer to double lock it
+    // if storedFileID is not a zip, put it in an encrypted zip
+  
+  
+    // const fName = await model.getFile(storedFileID);
+    // const newFileID = await model.createEmptyZip();
+    let passwordOptions = Object.assign({ ...options }, { password: password });
+    const writingOptions = encrypt ? passwordOptions : options;
+    const readingOptions = encrypt ? options : passwordOptions;
+    let dirOptions = Object.assign({ ...options }, { directory: true });
+  
+    let metadata = getFile(storedFileID).metadata;
+  
+    if (metadata.isZip && !(metadata.isEncryptedZip && metadata.zipFileCount == 1)) {
+      const entries = await getEntriesFromStoredFile(storedFileID, options);
+      var newFileID = await createEmptyZip();
+      for (e in entries) {
+        await transferEntry(entries[e]);
+      };
+      await closeZip(newFileID);
+      getFile(newFileID).metadata.fName = (encrypt ? "PASSWORD-PROTECTED " : "PASSWORD-REMOVED ") + metadata.fName;
+      // if we've just encrypted a multi-file zip, we could now put that into an outer zip
+      // let new_metadata = model.getFile(newFileID).metadata;
+      // if (encrypt && new_metadata.zipFileCount > 1) { var doubleLockedZip = await cryptZip}
+      // if we've just decrypted a zip and what's inside is a single-file zip, we could unzip that too
+  
+  
+    }
+  
+    if (metadata.isZip && metadata.isEncryptedZip && metadata.zipFileCount == 1) {
+      // extracting just one file
+      const entries = await getEntriesFromStoredFile(storedFileID, options);
+      let e = entries.filter((e) => !e.directory)[0];
+      var newFileID = await extractEntryToFile(e);
+      //  We can check at this point if the file 
+      // we've just extracted is another zip file, is also encrypted, etc.
+    }
+  
+    if (!metadata.isZip) {
+      // if it's just a plain old file
+      let blob = getFile(storedFileID).obj
+      let f = new File([blob], blob.name);
+      var newFileID = await createEmptyZip();
+      await addFileToZip(f, newFileID, writingOptions);
+      await closeZip(newFileID);
+      getFile(newFileID).metadata.fName = "PASSWORD-PROTECTED " + metadata.fName + ".zip";
+  
+    }
+  
+    return newFileID;
+  
+    async function extractEntryToFile(e) {
+      let entryBlob = await getEntryContent(e, readingOptions);
+      let f = new File([entryBlob], e.filename);
+      let newFileID = await storeFile(f);
+      getFile(newFileID).metadata.fName = e.filename;
+      return newFileID;
+    }
+  
+    async function transferEntry(e) {
+      if (!e.directory) {
+        let entryBlob = await getEntryContent(e, readingOptions);
+        let f = new File([entryBlob], e.filename);
+        return addFileToZip(f, newFileID, writingOptions);
+      } else {
+        return addDirToZip(e.filename, newFileID, dirOptions)
+      };
+    };
+  }
+  
+
   async function cryptPDF(storedFileID, decryption_pw = "", encryption_pw = "", unProtect = false) {
     // will try to decrypt first
     // then encrypt 
@@ -859,7 +861,8 @@ const model = (() => {
     createEmptyZip,
     addFileToZip,
     addDirToZip,
-    closeZip, 
+    closeZip,
+    cryptZip, 
     cryptPDF
   };
 

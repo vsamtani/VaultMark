@@ -178,8 +178,33 @@ async function displayCard(storedFileID) {
   card.addEventListener("dragover", activateDropZone, false);
 };
 
-async function processStoredFile(storedFileID, inputPassword = "", actions = ['open', 'unprotect', 'protect']) {
+async function displayFileOnCard(storedFileID_original, storedFileID_new, downloadFileName, cardGroup, displayText, buttonText) {
+  let card = document.querySelector("#card-id-" + storedFileID_original);
+  let group = card.querySelector(cardGroup);
+  let message = group.querySelector("span.status-message");
+  let input = group.querySelector("input");
+  let button = group.querySelector("button");
+  let a = group.querySelector("a");
 
+  input.classList.add("hidden");
+
+  button.classList.add("hidden");
+
+  message.innerHTML = displayText;
+  message.classList.remove("hidden");
+
+  a.innerHTML = "Save";
+  a.href = URL.createObjectURL(await model.getFile(storedFileID_new).obj);
+  a.download = downloadFileName;
+  a.classList.add("save-button");
+  a.classList.remove("hidden");
+
+
+  group.classList.remove("hidden");
+}
+
+async function processStoredFile(storedFileID, inputPassword = "", actions = ['open', 'unprotect', 'protect']) {
+// this function is basically the controller.
   let metadata = await model.getFile(storedFileID).metadata;
 
   let card = document.querySelector("#card-id-" + storedFileID);
@@ -187,6 +212,8 @@ async function processStoredFile(storedFileID, inputPassword = "", actions = ['o
   inputPassword = (actions.includes('open')) ? passwordField.value.trim() : "";
 
   if (metadata.isEncryptedZip || metadata.isEncryptedPDF) {
+
+    // view updates
     card.querySelector(".decrypt-group").classList.remove("hidden");
   }
 
@@ -194,21 +221,30 @@ async function processStoredFile(storedFileID, inputPassword = "", actions = ['o
     if (!metadata.isEncryptedPDF && actions.includes('protect')) {
       let pw = generatePassword();
       const encryptedPDFID = await cryptPDF(storedFileID, "", pw, false);
+      
+      // view updates
       displayFileOnCard(storedFileID, encryptedPDFID, "PASSWORD-PROTECTED " + metadata.fName, ".encrypt-group", `Locked with password: <br><strong>${pw}</strong>`);
     };
 
     if (!metadata.isEncryptedPDF && metadata.isProtectedPDF && actions.includes('unprotect')) {
       const unprotectedPDFID = await cryptPDF(storedFileID, "", "", true);
-      displayFileOnCard(storedFileID, unprotectedPDFID, "UNRESTRICTED " + metadata.fName, ".unprotect-pdf-group", "Restrictions removed.");;
+      
+      // update the card so that any further actions work on the unprotected PDF
       await model.storeFile(await model.getFile(unprotectedPDFID).obj, storedFileID);
       model.getFile(storedFileID).metadata.fName = metadata.fName;
       metadata = await model.getFile(storedFileID).metadata
+
+      // view updates
+      displayFileOnCard(storedFileID, unprotectedPDFID, "UNRESTRICTED " + metadata.fName, ".unprotect-pdf-group", "Restrictions removed.");;
+
     };
 
     if (actions.includes('stamp')) {
       let stampText = card.querySelector("input#stamp-pdf-input").value;
       if (!stampText) stampText = card.querySelector("input#stamp-pdf-input").placeholder;
       const stampedPDFID = await markPDF(storedFileID, stampText, metadata.ranges, metadata.runs, true);
+      
+      // view updates
       displayFileOnCard(storedFileID, stampedPDFID, "STAMPED " + metadata.fName, ".stamp-pdf-group", `Stamped with: <strong>${stampText}</strong>`);
     };
 
@@ -220,11 +256,13 @@ async function processStoredFile(storedFileID, inputPassword = "", actions = ['o
         " on " +
         new Date().toLocaleString("en-GB", { day: "2-digit", year: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
       const markedPDFID = await markPDF(storedFileID, markText, metadata.ranges, metadata.runs);
+      
+      // view updates
       displayFileOnCard(storedFileID, markedPDFID, "MARKED " + metadata.fName, ".mark-pdf-group", `Marked for release${(recipientText ? ` to <strong>${recipientText}</strong>` : `.`)}`);
     };
 
     if (metadata.isEncryptedPDF && actions.includes('open')) {
-      card.querySelector(".decrypt-group").classList.remove("hidden");
+
       const decryptedPDFID = await cryptPDF(storedFileID, inputPassword, "", true);
       if (decryptedPDFID === null) {
         // didn't decrypt with pw
@@ -232,10 +270,15 @@ async function processStoredFile(storedFileID, inputPassword = "", actions = ['o
         if (inputPassword !== '') passwordField.placeholder = "Could not open with '" + inputPassword + "'";
       } else {
         // successfully decrypted
-        displayFileOnCard(storedFileID, decryptedPDFID, "PASSWORD-REMOVED " + metadata.fName, ".decrypt-group", "Password and restrictions removed");
+        // update the card so that any further actions work on the unprotected PDF
         await model.storeFile(await model.getFile(decryptedPDFID).obj, storedFileID);
         model.getFile(storedFileID).metadata.fName = metadata.fName;
         metadata = await model.getFile(storedFileID).metadata;
+
+        // view updates
+        card.querySelector(".decrypt-group").classList.remove("hidden");
+        displayFileOnCard(storedFileID, decryptedPDFID, "PASSWORD-REMOVED " + metadata.fName, ".decrypt-group", "Password and restrictions removed");
+        
       };
     };
 
@@ -270,7 +313,7 @@ async function processStoredFile(storedFileID, inputPassword = "", actions = ['o
     // ordinary file, chuck it into a zip
     let pw = generatePassword();
     const encryptedZipID = await cryptZip(storedFileID, false, true, pw);
-    displayFileOnCard(storedFileID, encryptedZipID, model.getFile(encryptedZipID).metadata.fName, '.decrypt-group', `Locked with password: <br><strong>${pw}</strong>`);
+    displayFileOnCard(storedFileID, encryptedZipID, model.getFile(encryptedZipID).metadata.fName, '.encrypt-group', `Locked with password: <br><strong>${pw}</strong>`);
   };
 
   // card.querySelector(".file-name-subtext").innerHTML = subText;
@@ -510,8 +553,8 @@ async function cryptZip(storedFileID, isZip, encrypt = true, password, options =
     await model.closeZip(newFileID);
     model.getFile(newFileID).metadata.fName = (encrypt ? "PASSWORD-PROTECTED " : "PASSWORD-REMOVED ") + metadata.fName;
 // if we've just encrypted a multi-file zip, we could now put that into an outer zip
-let new_metadata = model.getFile(newFileID).metadata;
-if (encrypt && new_metadata.zipFileCount > 1) { var doubleLockedZip = await cryptZip}
+// let new_metadata = model.getFile(newFileID).metadata;
+// if (encrypt && new_metadata.zipFileCount > 1) { var doubleLockedZip = await cryptZip}
 // if we've just decrypted a zip and what's inside is a single-file zip, we could unzip that too
 
 
@@ -535,7 +578,6 @@ if (encrypt && new_metadata.zipFileCount > 1) { var doubleLockedZip = await cryp
     await model.closeZip(newFileID);
     model.getFile(newFileID).metadata.fName = "PASSWORD-PROTECTED " + metadata.fName + ".zip";
 
-    // Double lock - put the zip 
   }
 
   return newFileID;
@@ -673,30 +715,7 @@ async function cryptPDF(storedFileID, decryption_pw = "", encryption_pw = "", un
 
 }
 
-async function displayFileOnCard(storedFileID_original, storedFileID_new, downloadFileName, cardGroup, displayText, buttonText) {
-  let card = document.querySelector("#card-id-" + storedFileID_original);
-  let group = card.querySelector(cardGroup);
-  let message = group.querySelector("span.status-message");
-  let input = group.querySelector("input");
-  let button = group.querySelector("button");
-  let a = group.querySelector("a");
 
-  input.classList.add("hidden");
-
-  button.classList.add("hidden");
-
-  message.innerHTML = displayText;
-  message.classList.remove("hidden");
-
-  a.innerHTML = "Save";
-  a.href = URL.createObjectURL(await model.getFile(storedFileID_new).obj);
-  a.download = downloadFileName;
-  a.classList.add("save-button");
-  a.classList.remove("hidden");
-
-
-  group.classList.remove("hidden");
-}
 
 const model = (() => {
   // let zipWriter;
@@ -855,7 +874,6 @@ const model = (() => {
           valid: true,
           encrypted: entries.some((e) => !e.directory && e.encrypted),
           files: entries.filter((e) => !e.directory).length
-          doubleLocked: entries.filter((e) => !e.directory).length == 1 && entries.filter((e) => !e.directory).  
         });
       }
     },

@@ -220,14 +220,14 @@ async function processStoredFile(storedFileID, inputPassword = "", actions = ['o
   if (metadata.isPDF) {
     if (!metadata.isEncryptedPDF && actions.includes('protect')) {
       let pw = generatePassword();
-      const encryptedPDFID = await cryptPDF(storedFileID, "", pw, false);
+      const encryptedPDFID = await model.cryptPDF(storedFileID, "", pw, false);
 
       // view updates
       displayFileOnCard(storedFileID, encryptedPDFID, "PASSWORD-PROTECTED " + metadata.fName, ".encrypt-group", `Locked with password: <br><strong>${pw}</strong>`);
     };
 
     if (!metadata.isEncryptedPDF && metadata.isProtectedPDF && actions.includes('unprotect')) {
-      const unprotectedPDFID = await cryptPDF(storedFileID, "", "", true);
+      const unprotectedPDFID = await model.cryptPDF(storedFileID, "", "", true);
 
       // update the card so that any further actions work on the unprotected PDF
       await model.storeFile(await model.getFile(unprotectedPDFID).obj, storedFileID);
@@ -263,7 +263,7 @@ async function processStoredFile(storedFileID, inputPassword = "", actions = ['o
 
     if (metadata.isEncryptedPDF && actions.includes('open')) {
 
-      const decryptedPDFID = await cryptPDF(storedFileID, inputPassword, "", true);
+      const decryptedPDFID = await model.cryptPDF(storedFileID, inputPassword, "", true);
       if (decryptedPDFID === null) {
         // didn't decrypt with pw
         passwordField.value = "";
@@ -599,73 +599,6 @@ async function cryptZip(storedFileID, isZip, encrypt = true, password, options =
 }
 
 
-async function cryptPDF(storedFileID, decryption_pw = "", encryption_pw = "", unProtect = false) {
-  // will try to decrypt first
-  // then encrypt 
-  // will always try to set owner permissions with a random password.
-
-  let permissions = [coherentpdf.noAnnot, coherentpdf.noAssemble, coherentpdf.noCopy, coherentpdf.noEdit, coherentpdf.noExtract, coherentpdf.noForms];
-  let encryption = coherentpdf.aes256bitisotrue;
-  let f = await model.getFile(storedFileID).obj;
-  let pdfBuffer = new Uint8Array(await f.arrayBuffer());
-  let pdf;
-  let loadSuccess = false;
-
-  try {
-    pdf = coherentpdf.fromMemory(pdfBuffer, "");
-    loadSuccess = true;
-  } catch (e) { }
-
-  if (!loadSuccess) {
-    try {
-      pdf = coherentpdf.fromMemory(pdfBuffer, decryption_pw);
-      loadSuccess = true;
-    } catch (e) { }
-  }
-
-  coherentpdf.setFast();
-
-  let decryptionSuccess = false;
-  if (loadSuccess) {
-    try {
-      // supplied user password
-      coherentpdf.decryptPdf(pdf, decryption_pw);
-      decryptionSuccess = true;
-    } catch (e) {
-    };
-    if (!decryptionSuccess) {
-      try {
-        // blank user password
-        coherentpdf.decryptPdf(pdf, "");
-        decryptionSuccess = true;
-      } catch (e) {
-      }
-    };
-    if (!decryptionSuccess) {
-      try {
-        // supplied password as owner password
-        coherentpdf.decryptPdfOwner(pdf, decryption_pw);
-        decryptionSuccess = true;
-      } catch (e) {
-      }
-    };
-  }
-
-  if (!decryptionSuccess) return null;
-
-  if (unProtect) {
-    var pdfOut = coherentpdf.toMemory(pdf, false, false);
-  } else {
-    var pdfOut = coherentpdf.toMemoryEncrypted(pdf, encryption, permissions, generatePassword(), encryption_pw, false, false);
-  }
-  pdfBlob = new Blob([pdfOut], { type: 'application/pdf' });
-  coherentpdf.deletePdf(pdf);
-  return await model.storeFile(pdfBlob);
-
-}
-
-
-
 const model = (() => {
   // let zipWriter;
   const fileStore = new Map();
@@ -788,7 +721,7 @@ const model = (() => {
       // only check if it's the right mime-type
       // Because Office files will pass testZip()
       // but they can't be encrypted like normal zip files.
-      let zipTest = await model.testZip(fileID);
+      let zipTest = await testZip(fileID);
       metadata.isZip = zipTest.valid;
       metadata.isEncryptedZip = zipTest.encrypted;
       metadata.zipFileCount = zipTest.files;
@@ -852,6 +785,72 @@ const model = (() => {
     // return fileStore.set(zipFileID, { obj: await zipWriter.close(), type: 'blob' });
     // return await fileStore.set(zipFileID, { obj: await zipWriter.close(), type: 'file' }).has(zipFileID) ? zipFileID : 0
   }
+
+  async function cryptPDF(storedFileID, decryption_pw = "", encryption_pw = "", unProtect = false) {
+    // will try to decrypt first
+    // then encrypt 
+    // will always try to set owner permissions with a random password.
+  
+    let permissions = [coherentpdf.noAnnot, coherentpdf.noAssemble, coherentpdf.noCopy, coherentpdf.noEdit, coherentpdf.noExtract, coherentpdf.noForms];
+    let encryption = coherentpdf.aes256bitisotrue;
+    let f = await getFile(storedFileID).obj;
+    let pdfBuffer = new Uint8Array(await f.arrayBuffer());
+    let pdf;
+    let loadSuccess = false;
+  
+    try {
+      pdf = coherentpdf.fromMemory(pdfBuffer, "");
+      loadSuccess = true;
+    } catch (e) { }
+  
+    if (!loadSuccess) {
+      try {
+        pdf = coherentpdf.fromMemory(pdfBuffer, decryption_pw);
+        loadSuccess = true;
+      } catch (e) { }
+    }
+  
+    coherentpdf.setFast();
+  
+    let decryptionSuccess = false;
+    if (loadSuccess) {
+      try {
+        // supplied user password
+        coherentpdf.decryptPdf(pdf, decryption_pw);
+        decryptionSuccess = true;
+      } catch (e) {
+      };
+      if (!decryptionSuccess) {
+        try {
+          // blank user password
+          coherentpdf.decryptPdf(pdf, "");
+          decryptionSuccess = true;
+        } catch (e) {
+        }
+      };
+      if (!decryptionSuccess) {
+        try {
+          // supplied password as owner password
+          coherentpdf.decryptPdfOwner(pdf, decryption_pw);
+          decryptionSuccess = true;
+        } catch (e) {
+        }
+      };
+    }
+  
+    if (!decryptionSuccess) return null;
+  
+    if (unProtect) {
+      var pdfOut = coherentpdf.toMemory(pdf, false, false);
+    } else {
+      var pdfOut = coherentpdf.toMemoryEncrypted(pdf, encryption, permissions, generatePassword(), encryption_pw, false, false);
+    }
+    pdfBlob = new Blob([pdfOut], { type: 'application/pdf' });
+    coherentpdf.deletePdf(pdf);
+    return await storeFile(pdfBlob);
+  
+  }
+
   return {
     storeFile,
     getFile,
@@ -860,7 +859,8 @@ const model = (() => {
     createEmptyZip,
     addFileToZip,
     addDirToZip,
-    closeZip
+    closeZip, 
+    cryptPDF
   };
 
 })();

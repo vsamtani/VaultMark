@@ -28,7 +28,7 @@ fileSelectButton.addEventListener("click", (() => { fileDropInput.click() }));
 fileDropInput.addEventListener("change", handleFiles);
 
 // fileDropArea.addEventListener("click", (() => { fileDropInput.click() }));
-window.addEventListener("blur", deactivateDropZone, false);
+// window.addEventListener("blur", deactivateDropZone, false);
 
 // Prevent default drag behaviours, and handle drag events
 ["dragenter", "dragover"].forEach((eventName) => {
@@ -41,7 +41,7 @@ window.addEventListener("blur", deactivateDropZone, false);
 
 ["dragleave"].forEach((eventName) => {
   window.addEventListener(eventName, preventDefaults, false);
-//   window.addEventListener(eventName, deactivateDropZone, false);
+  //   window.addEventListener(eventName, deactivateDropZone, false);
   fileDropArea.addEventListener(eventName, preventDefaults, false);
   fileDropArea.addEventListener(eventName, deactivateDropZone, false);
 });
@@ -82,7 +82,7 @@ function activateDropZone(e) {
 function deactivateDropZone(e) {
   fileDropArea.classList.remove("highlight");
   fileDropArea.removeEventListener("drop", handleFiles, false);
-  e.dataTransfer.dropEffect = 'none';
+  // e.dataTransfer.dropEffect = 'none';
 };
 
 function handleFiles(e) {
@@ -204,7 +204,7 @@ async function displayFileOnCard(storedFileID_original, storedFileID_new, downlo
 }
 
 async function processStoredFile(storedFileID, inputPassword = "", actions = ['open', 'unprotect', 'protect']) {
-// this function is basically the controller.
+  // this function is basically the controller.
   let metadata = await model.getFile(storedFileID).metadata;
 
   let card = document.querySelector("#card-id-" + storedFileID);
@@ -221,14 +221,14 @@ async function processStoredFile(storedFileID, inputPassword = "", actions = ['o
     if (!metadata.isEncryptedPDF && actions.includes('protect')) {
       let pw = generatePassword();
       const encryptedPDFID = await cryptPDF(storedFileID, "", pw, false);
-      
+
       // view updates
       displayFileOnCard(storedFileID, encryptedPDFID, "PASSWORD-PROTECTED " + metadata.fName, ".encrypt-group", `Locked with password: <br><strong>${pw}</strong>`);
     };
 
     if (!metadata.isEncryptedPDF && metadata.isProtectedPDF && actions.includes('unprotect')) {
       const unprotectedPDFID = await cryptPDF(storedFileID, "", "", true);
-      
+
       // update the card so that any further actions work on the unprotected PDF
       await model.storeFile(await model.getFile(unprotectedPDFID).obj, storedFileID);
       model.getFile(storedFileID).metadata.fName = metadata.fName;
@@ -243,7 +243,7 @@ async function processStoredFile(storedFileID, inputPassword = "", actions = ['o
       let stampText = card.querySelector("input#stamp-pdf-input").value;
       if (!stampText) stampText = card.querySelector("input#stamp-pdf-input").placeholder;
       const stampedPDFID = await markPDF(storedFileID, stampText, metadata.ranges, metadata.runs, true);
-      
+
       // view updates
       displayFileOnCard(storedFileID, stampedPDFID, "STAMPED " + metadata.fName, ".stamp-pdf-group", `Stamped with: <strong>${stampText}</strong>`);
     };
@@ -256,7 +256,7 @@ async function processStoredFile(storedFileID, inputPassword = "", actions = ['o
         " on " +
         new Date().toLocaleString("en-GB", { day: "2-digit", year: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
       const markedPDFID = await markPDF(storedFileID, markText, metadata.ranges, metadata.runs);
-      
+
       // view updates
       displayFileOnCard(storedFileID, markedPDFID, "MARKED " + metadata.fName, ".mark-pdf-group", `Marked for release${(recipientText ? ` to <strong>${recipientText}</strong>` : `.`)}`);
     };
@@ -278,7 +278,7 @@ async function processStoredFile(storedFileID, inputPassword = "", actions = ['o
         // view updates
         card.querySelector(".decrypt-group").classList.remove("hidden");
         displayFileOnCard(storedFileID, decryptedPDFID, "PASSWORD-REMOVED " + metadata.fName, ".decrypt-group", "Password and restrictions removed");
-        
+
       };
     };
 
@@ -309,7 +309,6 @@ async function processStoredFile(storedFileID, inputPassword = "", actions = ['o
   };
 
   if (!metadata.isPDF && !metadata.isZip && actions.includes('protect')) {
-    card.querySelector(".file-name svg path#generic").classList.remove("hidden");
     // ordinary file, chuck it into a zip
     let pw = generatePassword();
     const encryptedZipID = await cryptZip(storedFileID, false, true, pw);
@@ -323,8 +322,6 @@ async function processStoredFile(storedFileID, inputPassword = "", actions = ['o
   // }
 
 };
-
-
 
 async function markPDF(storedFileID, markText, ranges, runs, stamp = false) {
 
@@ -552,10 +549,10 @@ async function cryptZip(storedFileID, isZip, encrypt = true, password, options =
     };
     await model.closeZip(newFileID);
     model.getFile(newFileID).metadata.fName = (encrypt ? "PASSWORD-PROTECTED " : "PASSWORD-REMOVED ") + metadata.fName;
-// if we've just encrypted a multi-file zip, we could now put that into an outer zip
-// let new_metadata = model.getFile(newFileID).metadata;
-// if (encrypt && new_metadata.zipFileCount > 1) { var doubleLockedZip = await cryptZip}
-// if we've just decrypted a zip and what's inside is a single-file zip, we could unzip that too
+    // if we've just encrypted a multi-file zip, we could now put that into an outer zip
+    // let new_metadata = model.getFile(newFileID).metadata;
+    // if (encrypt && new_metadata.zipFileCount > 1) { var doubleLockedZip = await cryptZip}
+    // if we've just decrypted a zip and what's inside is a single-file zip, we could unzip that too
 
 
   }
@@ -601,54 +598,6 @@ async function cryptZip(storedFileID, isZip, encrypt = true, password, options =
   };
 }
 
-async function cryptZip2(storedFileID, encrypt = true, password, options = {}) {
-  let metadata = model.getFile(storedFileID).metadata;
-
-  if (metadata.isZip && metadata.isEncryptedZip) {
-    const entries = await model.getEntriesFromStoredFile(storedFileID);
-
-
-    // check if our password can decrypt it
-    // check the whole Zip in advance so that we are confident we 
-    // won't fail midway when really processing the file
-    let canDecryptZip = true;
-
-    for (e of entries.filter((e) => e.encrypted)) {
-      try {
-        await model.getEntryContent(entries[e], { password: password, checkPasswordOnly: true });
-      } catch (e) {
-        canDecryptZip = false;
-      }
-    }
-
-    if (canDecryptZip) {
-      // is it just one file?
-      if (metadata.zipFileCount == 1) {
-        // extract this file, and check if it's an encrypted Zip file - if so, try decrypting it toodisplay for download
-
-      } else {
-        // extract everything to a new Zip
-        for (e of entries) {
-
-        }
-      }
-    }
-
-    for (e in entries) {
-      if (entries[e].encrypted) {
-        // if any entry fails, we can't decrypt
-        try {
-          await model.getEntryContent(entries[e], { password: password, checkPasswordOnly: true });
-        } catch (e) {
-          return false;
-        }
-      }
-    }
-
-    // entries.filter((e) => e.encrypted).
-  }
-
-}
 
 async function cryptPDF(storedFileID, decryption_pw = "", encryption_pw = "", unProtect = false) {
   // will try to decrypt first
@@ -719,191 +668,199 @@ async function cryptPDF(storedFileID, decryption_pw = "", encryption_pw = "", un
 
 const model = (() => {
   // let zipWriter;
-  let fileStore = new Map();
+  const fileStore = new Map();
 
-  return {
-    async storeFile(file, targetFileID = 0) {
-      if (targetFileID == 0) {
-        targetFileID = 1 + fileStore.keys().reduce((a, b) => { return a > b ? a : b }, 0);
-      }
-      fileStore.set(targetFileID, { obj: file, type: 'file' });
-      let metadata = await model.analyseFile(targetFileID);
-      fileStore.set(targetFileID, { obj: file, type: 'file', metadata });
-      return targetFileID;
-    },
+  async function storeFile(file, targetFileID = 0) {
+    if (targetFileID == 0) {
+      targetFileID = 1 + fileStore.keys().reduce((a, b) => { return a > b ? a : b }, 0);
+    }
+    fileStore.set(targetFileID, { obj: file, type: 'file' });
+    let metadata = await _analyseFile(targetFileID);
+    fileStore.set(targetFileID, { obj: file, type: 'file', metadata });
+    return targetFileID;
+  }
 
-    async analyseFile(fileID) {
+  async function _analyseFile(fileID) {
 
-      let metadata = Object.create(null);
+    let metadata = Object.create(null);
 
-      let f = model.getFile(fileID).obj;
-      metadata.isZip = (f.type == 'application/zip' || f.type == 'application/x-zip-compressed');
-      metadata.isPDF = (f.type == 'application/pdf');
+    let f = getFile(fileID).obj;
+    metadata.isZip = (f.type == 'application/zip' || f.type == 'application/x-zip-compressed');
+    metadata.isPDF = (f.type == 'application/pdf');
 
-      if (f.type == '') {
-        // try to guess from extension
-        let ext = f.name.split('.');
-        (ext.length > 1) ? ext = ext.pop().toLowerCase() : ext = "";
-        metadata.isZip = (ext == 'zip');
-        metadata.isPDF = (ext == 'pdf');
-      }
+    if (f.type == '') {
+      // try to guess from extension
+      let ext = f.name.split('.');
+      (ext.length > 1) ? ext = ext.pop().toLowerCase() : ext = "";
+      metadata.isZip = (ext == 'zip');
+      metadata.isPDF = (ext == 'pdf');
+    }
 
-      metadata.fName = f.name;
-
-
-      if (metadata.isPDF) {
-        // check if it's a valid PDF
-        var pdfBuffer = new Uint8Array(await f.arrayBuffer());
-        try {
-          // if this succeeds, it's a PDF
-          var pdf = coherentpdf.fromMemory(pdfBuffer, "");
-        } catch (e) {
-          if (e[2].c.search(/password/, "i") >= 0) {
-
-            // it's a pdf, but we can't load it into memory to analyse it
-            metadata.isPDF = true;
-            metadata.isEncryptedPDF = true;
-            return metadata;
-          } else {
-            metadata.isPDF = false;
-            metadata.isEncryptedPDF = false;
-            return metadata;
-          }
-        }
-      };
-
-      if (metadata.isPDF) {
-        // check if it's password-protected
-        // if it only has an owner-password, strip that out
-        let orig_encrypted = (coherentpdf.isEncrypted(pdf));
-        metadata.isEncryptedPDF = false;
-        metadata.isProtectedPDF = false;
-        // var canDecryptPDF;
-        if (orig_encrypted) {
-          try {
-            coherentpdf.decryptPdf(pdf, "");
-            metadata.isProtectedPDF = true;
-            metadata.canDecryptPDF = true;
-            // console.log("Owner protection can be removed");
-          } catch (e) {
-            metadata.isEncryptedPDF = true;
-            metadata.canDecryptPDF = false;
-          }
-        }
-
-        // Analyse the ranges and runs
-        // only if not encrypted and not protected
-
-        if (!metadata.isEncryptedPDF && !metadata.isProtectedPDF) {
-
-          var ranges = new Map();
-          var runs = [];
-          let prev_sizespec = "";
-          let prev_width, prev_height = 0;
-          let curr_run = [];
-          for (let pg = 1; pg <= coherentpdf.pages(pdf); pg++) {
-            let mb = coherentpdf.getMediaBox(pdf, pg);
-            let width = mb[1] - mb[0];
-            let height = mb[3] - mb[2];
-            let sizespec = width.toString() + "x" + height.toString();
-            if (ranges.has(sizespec)) {
-              let arr = ranges.get(sizespec);
-              arr[1].push(pg);
-              ranges.set(sizespec, arr);
-            } else {
-              ranges.set(sizespec, [mb, [pg]]);
-            };
+    metadata.fName = f.name;
 
 
-            if (prev_sizespec == sizespec || pg == 1) {
-              curr_run.push(pg);
-
-            } else {
-              runs.push([prev_width, prev_height, curr_run]);
-              curr_run = [pg];
-            }
-            prev_sizespec = sizespec;
-            prev_width = width;
-            prev_height = height;
-          };
-          runs.push([prev_width, prev_height, curr_run]);
-
-          // console.log("Ranges and runs defined", ranges, runs);
-          coherentpdf.deletePdf(pdf);
-          metadata.runs = runs;
-          metadata.ranges = ranges;
-        }
-
-      };
-
-      if (metadata.isZip) {
-        // only check if it's the right mime-type
-        // Because Office files will pass testZip()
-        // but they can't be encrypted like normal zip files.
-        let zipTest = await model.testZip(fileID);
-        metadata.isZip = zipTest.valid;
-        metadata.isEncryptedZip = zipTest.encrypted;
-        metadata.zipFileCount = zipTest.files;
-      };
-
-      return metadata;
-    },
-
-    getFile(fileID) {
-      // let blob = await file.arrayBuffer();
-      return fileStore.get(fileID);
-    },
-
-    async getEntriesFromStoredFile(zipFileID, options) {
+    if (metadata.isPDF) {
+      // check if it's a valid PDF
+      var pdfBuffer = new Uint8Array(await f.arrayBuffer());
       try {
-        return await (new zip.ZipReader(new zip.BlobReader(fileStore.get(zipFileID).obj))).getEntries(options);
-      } catch {
-        return null;
+        // if this succeeds, it's a PDF
+        var pdf = coherentpdf.fromMemory(pdfBuffer, "");
+      } catch (e) {
+        if (e[2].c.search(/password/, "i") >= 0) {
+
+          // it's a pdf, but we can't load it into memory to analyse it
+          metadata.isPDF = true;
+          metadata.isEncryptedPDF = true;
+          return metadata;
+        } else {
+          metadata.isPDF = false;
+          metadata.isEncryptedPDF = false;
+          return metadata;
+        }
       }
-    },
+    };
 
-    async getEntryContent(entry, options) {
-      return await entry.getData(new zip.BlobWriter(), options);
-    },
-
-    async testZip(storedFileID) {
-      const entries = await model.getEntriesFromStoredFile(storedFileID);
-      if (entries === null) { return ({ valid: false, encrypted: null, files: null }) } else {
-        // entries.filter((e) => !e.directory).length
-        return ({
-          valid: true,
-          encrypted: entries.some((e) => !e.directory && e.encrypted),
-          files: entries.filter((e) => !e.directory).length
-        });
+    if (metadata.isPDF) {
+      // check if it's password-protected
+      // if it only has an owner-password, strip that out
+      let orig_encrypted = (coherentpdf.isEncrypted(pdf));
+      metadata.isEncryptedPDF = false;
+      metadata.isProtectedPDF = false;
+      // var canDecryptPDF;
+      if (orig_encrypted) {
+        try {
+          coherentpdf.decryptPdf(pdf, "");
+          metadata.isProtectedPDF = true;
+          metadata.canDecryptPDF = true;
+          // console.log("Owner protection can be removed");
+        } catch (e) {
+          metadata.isEncryptedPDF = true;
+          metadata.canDecryptPDF = false;
+        }
       }
-    },
 
-    async createEmptyZip(options) {
-      let newFileID = 1 + fileStore.keys().reduce((a, b) => { return a > b ? a : b }, 1);
-      let zipWriter = new zip.ZipWriter(new zip.BlobWriter("application/zip"), { bufferedWrite: true });
-      fileStore.set(newFileID, { obj: zipWriter, type: 'zipWriter' });
-      return newFileID;
-    },
+      // Analyse the ranges and runs
+      // only if not encrypted and not protected
 
-    async addFileToZip(file, zipFileID, options = {}) {
-      let zipWriter = fileStore.get(zipFileID).obj;
-      // let file = fileStore.get(FileID).obj;
-      return await zipWriter.add(file.name, new zip.BlobReader(file), options);
-    },
+      if (!metadata.isEncryptedPDF && !metadata.isProtectedPDF) {
 
-    async addDirToZip(dirName, zipFileID, options = {}) {
-      let zipWriter = fileStore.get(zipFileID).obj;
-      // let file = fileStore.get(FileID).obj;
-      return await zipWriter.add(dirName, new zip.TextReader(""), options);
-    },
+        var ranges = new Map();
+        var runs = [];
+        let prev_sizespec = "";
+        let prev_width, prev_height = 0;
+        let curr_run = [];
+        for (let pg = 1; pg <= coherentpdf.pages(pdf); pg++) {
+          let mb = coherentpdf.getMediaBox(pdf, pg);
+          let width = mb[1] - mb[0];
+          let height = mb[3] - mb[2];
+          let sizespec = width.toString() + "x" + height.toString();
+          if (ranges.has(sizespec)) {
+            let arr = ranges.get(sizespec);
+            arr[1].push(pg);
+            ranges.set(sizespec, arr);
+          } else {
+            ranges.set(sizespec, [mb, [pg]]);
+          };
 
-    async closeZip(zipFileID) {
-      let f = fileStore.get(zipFileID)
-      let zipWriter = f.obj;
-      return await model.storeFile(await zipWriter.close(), zipFileID);
-      // return fileStore.set(zipFileID, { obj: await zipWriter.close(), type: 'blob' });
-      // return await fileStore.set(zipFileID, { obj: await zipWriter.close(), type: 'file' }).has(zipFileID) ? zipFileID : 0
-    },
+
+          if (prev_sizespec == sizespec || pg == 1) {
+            curr_run.push(pg);
+
+          } else {
+            runs.push([prev_width, prev_height, curr_run]);
+            curr_run = [pg];
+          }
+          prev_sizespec = sizespec;
+          prev_width = width;
+          prev_height = height;
+        };
+        runs.push([prev_width, prev_height, curr_run]);
+
+        // console.log("Ranges and runs defined", ranges, runs);
+        coherentpdf.deletePdf(pdf);
+        metadata.runs = runs;
+        metadata.ranges = ranges;
+      }
+
+    };
+
+    if (metadata.isZip) {
+      // only check if it's the right mime-type
+      // Because Office files will pass testZip()
+      // but they can't be encrypted like normal zip files.
+      let zipTest = await model.testZip(fileID);
+      metadata.isZip = zipTest.valid;
+      metadata.isEncryptedZip = zipTest.encrypted;
+      metadata.zipFileCount = zipTest.files;
+    };
+
+    return metadata;
+  }
+
+  function getFile(fileID) {
+    // let blob = await file.arrayBuffer();
+    return fileStore.get(fileID);
+  }
+
+  async function getEntriesFromStoredFile(zipFileID, options) {
+    try {
+      return await (new zip.ZipReader(new zip.BlobReader(fileStore.get(zipFileID).obj))).getEntries(options);
+    } catch {
+      return null;
+    }
+  }
+
+  async function getEntryContent(entry, options) {
+    return await entry.getData(new zip.BlobWriter(), options);
+  }
+
+  async function testZip(storedFileID) {
+    const entries = await model.getEntriesFromStoredFile(storedFileID);
+    if (entries === null) { return ({ valid: false, encrypted: null, files: null }) } else {
+      // entries.filter((e) => !e.directory).length
+      return ({
+        valid: true,
+        encrypted: entries.some((e) => !e.directory && e.encrypted),
+        files: entries.filter((e) => !e.directory).length
+      });
+    }
+  }
+
+  async function createEmptyZip(options) {
+    let newFileID = 1 + fileStore.keys().reduce((a, b) => { return a > b ? a : b }, 1);
+    let zipWriter = new zip.ZipWriter(new zip.BlobWriter("application/zip"), { bufferedWrite: true });
+    fileStore.set(newFileID, { obj: zipWriter, type: 'zipWriter' });
+    return newFileID;
+  }
+
+  async function addFileToZip(file, zipFileID, options = {}) {
+    let zipWriter = fileStore.get(zipFileID).obj;
+    // let file = fileStore.get(FileID).obj;
+    return await zipWriter.add(file.name, new zip.BlobReader(file), options);
+  }
+
+  async function addDirToZip(dirName, zipFileID, options = {}) {
+    let zipWriter = fileStore.get(zipFileID).obj;
+    // let file = fileStore.get(FileID).obj;
+    return await zipWriter.add(dirName, new zip.TextReader(""), options);
+  }
+
+  async function closeZip(zipFileID) {
+    let f = fileStore.get(zipFileID)
+    let zipWriter = f.obj;
+    return await model.storeFile(await zipWriter.close(), zipFileID);
+    // return fileStore.set(zipFileID, { obj: await zipWriter.close(), type: 'blob' });
+    // return await fileStore.set(zipFileID, { obj: await zipWriter.close(), type: 'file' }).has(zipFileID) ? zipFileID : 0
+  }
+  return {
+    storeFile,
+    getFile,
+    getEntriesFromStoredFile,
+    getEntryContent,
+    createEmptyZip,
+    addFileToZip,
+    addDirToZip,
+    closeZip
   };
 
 })();

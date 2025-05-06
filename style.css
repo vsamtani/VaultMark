@@ -256,15 +256,13 @@ a.save-button:hover {
 .drag-area {
   border: none;
   position: fixed;
-  top: 16%;
+  top: 5vh;
   width: 90%;
-  height: 74%;
+  height: 90vh;
   z-index: -10;
   pointer-events: auto;
   opacity: 0;
-  xdisplay: none;
-
-}
+ }
 
 .drag-area-underlay {
   border: 0px solid #000;
@@ -313,7 +311,7 @@ footer {
   bottom: 0;
   left: 0;
   width: 100%;
-  z-index: 100;
+  z-index: 0;
 }
 
 nav a {

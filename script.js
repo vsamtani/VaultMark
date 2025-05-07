@@ -18,53 +18,29 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 // Drag and drop functions
+
+
 const fileDropArea = document.getElementById("drag-area");
+
 const fileDropInput = document.querySelector("input#file-input");
+fileDropInput.addEventListener("change", handleSelectedFiles);
 
 const fileSelectButton = document.querySelector("header button.file-select-button");
 fileSelectButton.addEventListener("click", (() => { fileDropInput.click() }));
 
-fileDropInput.addEventListener("change", handleFiles);
-
-
 // Prevent default drag behaviours, and handle drag events
 
-
-["dragenter", "dragover"].forEach((eventName) => {
+for (eventName of ["dragenter", "dragover", "dragleave", "drop"]) {
   window.addEventListener(eventName, preventDefaults, false);
   window.addEventListener(eventName, deactivateDropZone, false);
   fileDropArea.addEventListener(eventName, preventDefaults, false);
-  fileDropArea.addEventListener(eventName, activateDropZone, false);
-  // fileDropArea_U.addEventListener(eventName, preventDefaults, false);
-  // fileDropArea_U.addEventListener(eventName, activateDropZone, false);
-});
+};
 
-["dragleave"].forEach((eventName) => {
-  window.addEventListener(eventName, preventDefaults, false);
-  //   window.addEventListener(eventName, deactivateDropZone, false);
-  fileDropArea.addEventListener(eventName, preventDefaults, false);
-  fileDropArea.addEventListener(eventName, deactivateDropZone, false);
-});
+fileDropArea.addEventListener("dragenter", activateDropZone, false);
+fileDropArea.addEventListener("dragover", activateDropZone, false);
+fileDropArea.addEventListener("dragleave", deactivateDropZone, false);
+fileDropArea.addEventListener("drop", handleDroppedFiles, false);
 
-["drop"].forEach((eventName) => {
-  window.addEventListener(eventName, preventDefaults, false);
-  fileDropArea.addEventListener(eventName, preventDefaults, false);
-  fileDropArea.addEventListener(eventName, activateDropZone, false);
-
-});
-
-// ["dragleave", "drop"].forEach((eventName) => {
-//   window.addEventListener(eventName, preventDefaults, false);
-//   // window.addEventListener(eventName, deactivateDropZone, false);
-//   fileDropArea.addEventListener(eventName, preventDefaults, false);
-//   // fileDropArea.addEventListener(eventName, activateDropZone, false);
-
-//   fileDropArea_U.addEventListener(eventName, preventDefaults, false);
-//   // fileDropArea_U.addEventListener(eventName, activateDropZone, false);
-// });
-
-
-// Handle dropped files
 function preventDefaults(e) {
   e.preventDefault();
   e.stopPropagation();
@@ -74,29 +50,27 @@ function activateDropZone(e) {
   let items = [...e.dataTransfer.items];
   if (items.some((i) => i.type !== '')) {
     fileDropArea.classList.add("highlight");
-    fileDropArea.addEventListener("drop", handleFiles, false);
+    // fileDropArea.addEventListener("drop", handleDroppedFiles, false);
     e.dataTransfer.dropEffect = 'copy';
   }
 }
 
 function deactivateDropZone(e) {
   fileDropArea.classList.remove("highlight");
-  fileDropArea.removeEventListener("drop", handleFiles, false);
+  // fileDropArea.removeEventListener("drop", handleDroppedFiles, false);
   e.dataTransfer.dropEffect = 'none';
 };
 
-function handleFiles(e) {
-  // get the files 
-  let files;
-  if (e.type == 'drop') {
-    deactivateDropZone(e);
-    files = e.dataTransfer.files;
-  }
-  if (e.type == 'change') {
-    files = this.files;
-  }
+function handleDroppedFiles(e) {
+  deactivateDropZone(e);
+  handleFiles([ ...e.dataTransfer.files]);
+}
 
-  files = [...files];
+function handleSelectedFiles(e) {
+  handleFiles([ ...this.files ]);
+}
+
+function handleFiles(files) {
   let handledFiles = [];
 
   // files.filter((f) => f.size > 0 || f.type !== '').forEach 

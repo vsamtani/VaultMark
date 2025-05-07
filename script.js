@@ -640,7 +640,7 @@ const model = (() => {
       let entryBlob = await getEntryContent(e, readingOptions);
       let f = new File([entryBlob], e.filename);
       let newFileID = await storeFile(f);
-      fileStore.get(newFileID).metadata.fName = e.filename;
+      // fileStore.get(newFileID).metadata.fName = e.filename;
       return newFileID;
     }
 

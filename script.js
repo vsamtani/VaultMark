@@ -19,6 +19,7 @@
 
 // Drag and drop functions
 
+const view = (() => {
 
 const fileDropArea = document.getElementById("drag-area");
 
@@ -88,11 +89,28 @@ function handleFiles(files) {
 }
 
 
+function handleFiles(files) {
+  let handledFiles = [];
+
+
+  // files.filter((f) => f.size > 0 || f.type !== '').forEach 
+  files.forEach(async (file) => {
+    if (file.size > 0 || file.type !== '') {
+      // fireEvent("input-file", {file: file})
+
+      const storedFileID = await model.storeFile(file, { parentFile: 0 });
+      displayCard(storedFileID, model.getFileMetadata(storedFileID));
+      processStoredFile(storedFileID, "", ['open', 'protect', 'unprotect']);
+      handledFiles.push(storedFileID);
+    }
+  });
+}
+
+
 async function displayCard(storedFileID, metadata) {
   // display a card for this file
   // if one doesn't exist, clone it.
   document.getElementById("introContent").classList.add("hidden");
-  console.log(storedFileID, metadata);
   // let metadata = model.getFileMetadata(storedFileID);
 
   let card = document.querySelector("#card-id-" + storedFileID);
@@ -184,6 +202,176 @@ async function displayFileOnCard(cardID, objectURL, downloadFileName, cardGroup,
   group.classList.remove("hidden");
 }
 
+return {
+  displayCard,
+  displayFileOnCard
+}
+
+})();
+
+// const fileDropArea = document.getElementById("drag-area");
+
+// const fileDropInput = document.querySelector("input#file-input");
+// fileDropInput.addEventListener("change", handleSelectedFiles);
+
+// const fileSelectButton = document.querySelector("header button.file-select-button");
+// fileSelectButton.addEventListener("click", (() => { fileDropInput.click() }));
+
+// // Prevent default drag behaviours, and handle drag events
+
+// for (eventName of ["dragenter", "dragover", "dragleave", "drop"]) {
+//   window.addEventListener(eventName, preventDefaults, false);
+//   window.addEventListener(eventName, deactivateDropZone, false);
+//   fileDropArea.addEventListener(eventName, preventDefaults, false);
+// };
+
+// fileDropArea.addEventListener("dragenter", activateDropZone, false);
+// fileDropArea.addEventListener("dragover", activateDropZone, false);
+// fileDropArea.addEventListener("dragleave", deactivateDropZone, false);
+// fileDropArea.addEventListener("drop", handleDroppedFiles, false);
+
+// function preventDefaults(e) {
+//   e.preventDefault();
+//   e.stopPropagation();
+// }
+
+// function activateDropZone(e) {
+//   let items = [...e.dataTransfer.items];
+//   if (items.some((i) => i.type !== '')) {
+//     fileDropArea.classList.add("highlight");
+//     // fileDropArea.addEventListener("drop", handleDroppedFiles, false);
+//     e.dataTransfer.dropEffect = 'copy';
+//   }
+// }
+
+// function deactivateDropZone(e) {
+//   fileDropArea.classList.remove("highlight");
+//   // fileDropArea.removeEventListener("drop", handleDroppedFiles, false);
+//   e.dataTransfer.dropEffect = 'none';
+// };
+
+// function handleDroppedFiles(e) {
+//   deactivateDropZone(e);
+//   handleFiles([...e.dataTransfer.files]);
+// }
+
+// function handleSelectedFiles(e) {
+//   handleFiles([...this.files]);
+// }
+
+// function handleFiles(files) {
+//   let handledFiles = [];
+
+
+//   // files.filter((f) => f.size > 0 || f.type !== '').forEach 
+//   files.forEach(async (file) => {
+//     if (file.size > 0 || file.type !== '') {
+//       // fireEvent("input-file", {file: file})
+
+//       const storedFileID = await model.storeFile(file, { parentFile: 0 });
+//       displayCard(storedFileID, model.getFileMetadata(storedFileID));
+//       processStoredFile(storedFileID, "", ['open', 'protect', 'unprotect']);
+//       handledFiles.push(storedFileID);
+//     }
+//   });
+// }
+
+
+// async function displayCard(storedFileID, metadata) {
+//   // display a card for this file
+//   // if one doesn't exist, clone it.
+//   document.getElementById("introContent").classList.add("hidden");
+//   // let metadata = model.getFileMetadata(storedFileID);
+
+//   let card = document.querySelector("#card-id-" + storedFileID);
+//   if (card === null) {
+//     let blankCard = document.querySelector(".card#file-card");
+//     card = blankCard.cloneNode(true);
+//     card.id = "card-id-" + storedFileID;
+//     blankCard.insertAdjacentElement('afterend', card);
+//   }
+
+//   card.classList.remove("hidden");
+//   card.querySelector(".file-name-text").textContent = metadata.fName;
+
+//   // File icons
+//   metadata.isPDF && card.querySelector(".file-name svg path#pdf").classList.remove("hidden");
+//   metadata.isZip && card.querySelector(".file-name svg path#zip").classList.remove("hidden");
+//   !metadata.isZip && !metadata.isPDF && card.querySelector(".file-name svg path#generic").classList.remove("hidden");
+
+//   (metadata.isEncryptedZip || metadata.isEncryptedPDF) ?
+//     card.querySelector(".file-name svg path#locked").classList.remove("hidden") :
+//     card.querySelector(".file-name svg path#unlocked").classList.remove("hidden");
+
+//   // File subtext 
+//   let subText =
+//     (metadata.isPDF ?
+//       (metadata.isEncryptedPDF ?
+//         "PDF locked with a password" :
+//         (metadata.isProtectedPDF ?
+//           "PDF with no password and some restrictions" :
+//           "PDF with no password and no restrictions"
+//         )
+//       ) :
+//       metadata.isZip ?
+//         (metadata.isEncryptedZip ?
+//           (metadata.zipFileCount == 1 ?
+//             "Single file in a locked Zip file" :
+//             "Zip file locked with a password"
+//           ) :
+//           "Zip file with no password"
+//         ) :
+//         "Ordinary file, to be locked in a Zip file"
+//     )
+//   card.querySelector(".file-name-subtext").innerHTML = subText;
+
+
+
+
+//   // Set up event listeners for click and keypress
+//   let inputGroup = card.querySelectorAll("div.input-group");
+//   inputGroup.forEach((group) => {
+//     let b = group.querySelector("button");
+//     let inp = group.querySelector("input");
+//     let action = b.textContent.toLowerCase();
+//     b.id = action + "_" + storedFileID;
+//     b.removeAttribute("onclick");
+//     inp.removeAttribute("onchange");
+//     inp.removeAttribute("onkeypress");
+//     let click_handler = (e) => { processStoredFile(storedFileID, "", [action]); }
+//     b.addEventListener("click", click_handler);
+//     inp.addEventListener("keypress", (event) => { if (event.key === "Enter") { event.preventDefault(); b.click(); } });
+//   });
+
+//   // Add a drag and drop listener because we've covered some of the drop zone
+//   card.addEventListener("dragover", activateDropZone, false);
+// };
+
+// async function view.displayFileOnCard(cardID, objectURL, downloadFileName, cardGroup, displayText, buttonText) {
+//   let card = document.querySelector("#card-id-" + cardID);
+//   let group = card.querySelector(cardGroup);
+//   let message = group.querySelector("span.status-message");
+//   let input = group.querySelector("input");
+//   let button = group.querySelector("button");
+//   let a = group.querySelector("a");
+
+//   input.classList.add("hidden");
+
+//   button.classList.add("hidden");
+
+//   message.innerHTML = displayText;
+//   message.classList.remove("hidden");
+
+//   a.innerHTML = "Save";
+//   a.href = objectURL;
+//   a.download = downloadFileName;
+//   a.classList.add("save-button");
+//   a.classList.remove("hidden");
+
+
+//   group.classList.remove("hidden");
+// }
+
 
 
 
@@ -207,7 +395,7 @@ async function processStoredFile(storedFileID, inputPassword = "", actions = ['o
       metadata = model.getFileMetadata(storedFileID);
 
       // view updates
-      displayFileOnCard(storedFileID, model.getFileMetadata(encryptedPDFID).URL, model.getFileMetadata(encryptedPDFID).fName, ".encrypt-group", `Locked with password: <br><strong>${pw}</strong>`);
+      view.displayFileOnCard(storedFileID, model.getFileMetadata(encryptedPDFID).URL, model.getFileMetadata(encryptedPDFID).fName, ".encrypt-group", `Locked with password: <br><strong>${pw}</strong>`);
     };
 
     // if (!metadata.isEncryptedPDF && metadata.isProtectedPDF && actions.includes('unprotect')) {
@@ -216,7 +404,7 @@ async function processStoredFile(storedFileID, inputPassword = "", actions = ['o
       metadata = await model.getFileMetadata(storedFileID);
 
       // view updates
-      displayFileOnCard(storedFileID, model.getFileMetadata(unprotectedPDFID).URL, model.getFileMetadata(unprotectedPDFID).fName, ".unprotect-pdf-group", "PDF restrictions removed.");;
+      view.displayFileOnCard(storedFileID, model.getFileMetadata(unprotectedPDFID).URL, model.getFileMetadata(unprotectedPDFID).fName, ".unprotect-pdf-group", "PDF restrictions removed.");;
 
     };
 
@@ -226,7 +414,7 @@ async function processStoredFile(storedFileID, inputPassword = "", actions = ['o
       const stampedPDFID = await model.markPDF(storedFileID, stampText, metadata.ranges, metadata.runs, true);
 
       // view updates
-      displayFileOnCard(storedFileID, model.getFileMetadata(stampedPDFID).URL, model.getFileMetadata(stampedPDFID).fName, ".stamp-pdf-group", `Stamped with: <strong>${stampText}</strong>`);
+      view.displayFileOnCard(storedFileID, model.getFileMetadata(stampedPDFID).URL, model.getFileMetadata(stampedPDFID).fName, ".stamp-pdf-group", `Stamped with: <strong>${stampText}</strong>`);
     };
 
     if (actions.includes('mark')) {
@@ -239,7 +427,7 @@ async function processStoredFile(storedFileID, inputPassword = "", actions = ['o
       const markedPDFID = await model.markPDF(storedFileID, markText, metadata.ranges, metadata.runs);
 
       // view updates
-      displayFileOnCard(storedFileID, model.getFileMetadata(markedPDFID).URL, model.getFileMetadata(markedPDFID).fName, ".mark-pdf-group", `Marked for release${(recipientText ? ` to <strong>${recipientText}</strong>` : `.`)}`);
+      view.displayFileOnCard(storedFileID, model.getFileMetadata(markedPDFID).URL, model.getFileMetadata(markedPDFID).fName, ".mark-pdf-group", `Marked for release${(recipientText ? ` to <strong>${recipientText}</strong>` : `.`)}`);
     };
 
     if (metadata.isEncryptedPDF && actions.includes('open')) {
@@ -250,10 +438,9 @@ async function processStoredFile(storedFileID, inputPassword = "", actions = ['o
         if (inputPassword !== '') passwordField.placeholder = "Could not open with '" + inputPassword + "'";
       } else {
         metadata = await model.getFileMetadata(storedFileID);
-        console.log("metadata:", metadata);
 
         // view updates
-        displayFileOnCard(storedFileID, model.getFileMetadata(decryptedPDFID).URL, model.getFileMetadata(decryptedPDFID).fName, ".decrypt-group", "Password removed");
+        view.displayFileOnCard(storedFileID, model.getFileMetadata(decryptedPDFID).URL, model.getFileMetadata(decryptedPDFID).fName, ".decrypt-group", "Password removed");
       };
     };
     if (!metadata.isEncryptedPDF && !metadata.isProtectedPDF) {
@@ -269,7 +456,7 @@ async function processStoredFile(storedFileID, inputPassword = "", actions = ['o
       const encryptedZipID = await model.cryptZip(storedFileID, true, true, pw);
 
 
-      displayFileOnCard(storedFileID, model.getFileMetadata(encryptedZipID).URL, model.getFileMetadata(encryptedZipID).fName, ".encrypt-group", `Locked with password: <br><strong>${pw}</strong>`);
+      view.displayFileOnCard(storedFileID, model.getFileMetadata(encryptedZipID).URL, model.getFileMetadata(encryptedZipID).fName, ".encrypt-group", `Locked with password: <br><strong>${pw}</strong>`);
     };
 
     if (metadata.isEncryptedZip && actions.includes('open')) {
@@ -280,7 +467,7 @@ async function processStoredFile(storedFileID, inputPassword = "", actions = ['o
         if (inputPassword !== '') passwordField.placeholder = "Could not open with '" + inputPassword + "'";
       } else {
         const decryptedZipID = await model.cryptZip(storedFileID, true, false, inputPassword);
-        displayFileOnCard(storedFileID, model.getFileMetadata(decryptedZipID).URL, model.getFileMetadata(decryptedZipID).fName, ".decrypt-group", "Password removed");
+        view.displayFileOnCard(storedFileID, model.getFileMetadata(decryptedZipID).URL, model.getFileMetadata(decryptedZipID).fName, ".decrypt-group", "Password removed");
       }
     };
   };
@@ -289,7 +476,7 @@ async function processStoredFile(storedFileID, inputPassword = "", actions = ['o
     // ordinary file, chuck it into a zip
     let pw = generatePassword();
     const encryptedZipID = await model.cryptZip(storedFileID, false, true, pw);
-    displayFileOnCard(storedFileID, model.getFileMetadata(encryptedZipID).URL, model.getFileMetadata(encryptedZipID).fName, '.encrypt-group', `Locked with password: <br><strong>${pw}</strong>`);
+    view.displayFileOnCard(storedFileID, model.getFileMetadata(encryptedZipID).URL, model.getFileMetadata(encryptedZipID).fName, '.encrypt-group', `Locked with password: <br><strong>${pw}</strong>`);
   };
 
   // card.querySelector(".file-name-subtext").innerHTML = subText;
@@ -375,7 +562,7 @@ const model = (() => {
       fileStore.get(metadata.parentFile).metadata.children.set(metadata.parentAction, targetFileID);
     }
 
-    insert ? fireEvent('insert', targetFileID) : fireEvent('update', targetFileID);
+    insert ? fireEvent('insert', { file: targetFileID} ) : fireEvent('update', { file: targetFileID } );
     return targetFileID;
   }
 
@@ -412,7 +599,6 @@ const model = (() => {
       // check if it's a valid PDF
       var pdfBuffer = new Uint8Array(await f.arrayBuffer());
       var { loadSuccess, decryptionSuccess, successfulPassword, pdf } = loadPDF(pdfBuffer, metadata.password);
-      console.log(f.name, loadSuccess, decryptionSuccess);
       try {
         // if this succeeds, it's a PDF
         pdf = coherentpdf.fromMemory(pdfBuffer, "");
@@ -509,27 +695,25 @@ const model = (() => {
     // Which actions are available
     let a = [];
     if (metadata.parentFile == 0) {
-      if (metadata.isPDF && !metadata.isEncryptedPDF) a.push('stamp', 'mark');
-      if (metadata.isPDF && metadata.isEncryptedPDF && metadata.password) a.push('stamp', 'mark');
-      if ((metadata.isEncryptedPDF || metadata.isEncryptedZip) && !metadata.password) a.push('open');
-      if (!metadata.isEncryptedPDF && !metadata.isEncryptedZip) a.push('protect');
-      if (metadata.isPDF && !metadata.isEncryptedPDF && metadata.isProtectedPDF) a.push('unprotect');
+      if ( metadata.isPDF && !metadata.isEncryptedPDF) a.push('stamp', 'mark');
+      if ( metadata.isPDF &&  metadata.isEncryptedPDF && metadata.password) a.push('stamp', 'mark');
+      if ( metadata.isPDF && !metadata.isEncryptedPDF && metadata.isProtectedPDF) a.push('unprotect');
       if (!metadata.isPDF && !metadata.isZip) a.push('protect');
-      if (metadata.isZip && !metadata.isEncryptedZip) a.push('protect');
-      if (metadata.isZip && metadata.isEncryptedZip) a.push('open');
+      if ( metadata.isEncryptedPDF ||  metadata.isEncryptedZip) a.push('open');
+      if (!metadata.isEncryptedPDF && !metadata.isEncryptedZip) a.push('protect');
     };
 
     metadata.availableActions = new Set(a);
 
     fileStore.get(storedFileID).metadata = metadata;
-
+    fireEvent('metadata', {file: storedFileID, metadata: metadata});
     return metadata;
   }
 
   function recordPassword(storedFileID, password) {
     if (password && !fileStore.get(storedFileID).metadata.password) {
       fileStore.get(storedFileID).metadata.password = password;
-      analyseFile(storedFileID)
+      analyseFile(storedFileID);
     };
   }
 
@@ -625,7 +809,7 @@ const model = (() => {
       var newFileID = await createEmptyZip();
       for (e in entries) {
         await transferEntry(entries[e]);
-        fireEvent('zip-progress', { input: storedFileID, current: e, total: entries.length });
+        fireEvent('processing-progress', { processID: processID, file: storedFileID, current: e, total: entries.length, process: 'zip-crypt' });
       };
       let newMetadata = { 
         parentFile: storedFileID,
@@ -648,7 +832,7 @@ const model = (() => {
       // extracting just one file
       const entries = await getEntriesFromStoredFile(storedFileID, options);
       let e = entries.filter((e) => !e.directory)[0];
-      fireEvent('zip-progress', { input: storedFileID, current: 1, total: 1 });
+      fireEvent('processing-progress', { processID: processID, file: storedFileID, current: 1, total: 1, process: 'zip-crypt' });
       let newMetadata = { 
         parentFile: storedFileID,
         parentAction: (encrypt ? 'protect' : 'open'),
@@ -665,7 +849,7 @@ const model = (() => {
       let blob = getFile(storedFileID).obj
       let f = new File([blob], blob.name);
       var newFileID = await createEmptyZip();
-      fireEvent('zip-progress', { input: storedFileID, current: 1, total: 1 });
+      fireEvent('processing-progress', { processID: processID, file: storedFileID, current: 1, total: 1, process: 'zip-crypt' });
       await addFileToZip(f, newFileID, writingOptions);
       let newMetadata = { 
         parentFile: storedFileID,
@@ -756,17 +940,19 @@ const model = (() => {
     // then encrypt 
     // will always try to set owner permissions with a random password.
 
-    let processID = crypto.randomUUID();
+    const processID = crypto.randomUUID();
     fireEvent('proccessing-start', { processID: processID, file: storedFileID, process: 'pdf-crypt' });
 
-    let permissions = [coherentpdf.noAnnot, coherentpdf.noAssemble, coherentpdf.noCopy, coherentpdf.noEdit, coherentpdf.noExtract, coherentpdf.noForms];
-    let encryption = coherentpdf.aes256bitisotrue;
-    let f = await getFile(storedFileID).obj;
-    let pdfBuffer = new Uint8Array(await f.arrayBuffer());
+    const permissions = [coherentpdf.noAnnot, coherentpdf.noAssemble, coherentpdf.noCopy, coherentpdf.noEdit, coherentpdf.noExtract, coherentpdf.noForms];
+    const encryption = coherentpdf.aes256bitisotrue;
+    const f = await getFile(storedFileID).obj;
+    const fName = getFileMetadata(storedFileID).fName;
+    const pdfBuffer = new Uint8Array(await f.arrayBuffer());
 
-    let { loadSuccess, decryptionSuccess, successfulPassword, pdf } = loadPDF(pdfBuffer, decryption_pw);
+    const { loadSuccess, decryptionSuccess, successfulPassword, pdf } = loadPDF(pdfBuffer, decryption_pw);
 
     if (!loadSuccess || !decryptionSuccess) {
+      if (decryption_pw !== "") fireEvent('invalid-password', { file: storedFileID, invalidPassword: decryption_pw } );
       fireEvent('proccessing-end', { processID: processID, file: storedFileID, process: 'pdf-crypt' });
       return null;
     }
@@ -783,22 +969,22 @@ const model = (() => {
       var pdfOut = coherentpdf.toMemoryEncrypted(pdf, encryption, permissions, generatePassword(), encryption_pw, false, false);
       var pdfBlob = new Blob([pdfOut], { type: 'application/pdf' });
       if (encryption_pw == '') {
-        var newFileName = "PASSWORD-REMOVED " + fileStore.get(storedFileID).metadata.fName;
+        var newFileName = "PASSWORD-REMOVED " + fName;
         var event = 'pdf-decrypt';
         var action = 'open';
       } else {
-        var newFileName = "PASSWORD-PROTECTED " + fileStore.get(storedFileID).metadata.fName;
+        var newFileName = "PASSWORD-PROTECTED " + fName;
         var event = 'pdf-encrypt';
         var action = 'protect';
       }
     }
 
-    let newFileMetadata = {
+    const newFileMetadata = {
       password: encryption_pw,
       parentFile: storedFileID,
       parentAction: action,
     };
-    let newFileID = await storeFile(new File([pdfBlob], newFileName), newFileMetadata);
+    const newFileID = await storeFile(new File([pdfBlob], newFileName), newFileMetadata);
 
     fireEvent(event, { input: storedFileID, output: newFileID });
     fireEvent('proccessing-end', { processID: processID, file: storedFileID, process: 'pdf-crypt' });
@@ -807,16 +993,15 @@ const model = (() => {
   }
 
   async function markPDF(storedFileID, markText, ranges, runs, stamp = false) {
-    let processID = crypto.randomUUID();
+    const processID = crypto.randomUUID();
     fireEvent('proccessing-start', { processID: processID, file: storedFileID, process: 'pdf-crypt' });
 
-    let permissions = [coherentpdf.noAnnot, coherentpdf.noAssemble, coherentpdf.noCopy, coherentpdf.noEdit, coherentpdf.noExtract, coherentpdf.noForms];
-    let encryption = coherentpdf.aes256bitisotrue;
-    let f = await getFile(storedFileID).obj;
-    let metadata = getFileMetadata(storedFileID);
-    let pdfBuffer = new Uint8Array(await f.arrayBuffer());
-    let password = metadata.password;
-    let { loadSuccess, decryptionSuccess, successfulPassword, pdf } = loadPDF(pdfBuffer, password);
+    const permissions = [coherentpdf.noAnnot, coherentpdf.noAssemble, coherentpdf.noCopy, coherentpdf.noEdit, coherentpdf.noExtract, coherentpdf.noForms];
+    const encryption = coherentpdf.aes256bitisotrue;
+    const f = await getFile(storedFileID).obj;
+    const metadata = getFileMetadata(storedFileID);
+    const pdfBuffer = new Uint8Array(await f.arrayBuffer());
+    let { loadSuccess, decryptionSuccess, successfulPassword, pdf } = loadPDF(pdfBuffer, metadata.password);
     coherentpdf.upright(pdf);
 
     let overlay_pdfs = [];
@@ -863,9 +1048,6 @@ const model = (() => {
             false);
         }
       } else {
-        // If the page is narrow, we need to scale down the font to fit
-        // Calculate against A4 portrait width
-        // Don't get bigger if it's wider
         let fontScalePage = Math.min((width / 595), 1);
 
         let fontScaleText = coherentpdf.textWidth(coherentpdf.helveticaBold, "Document prepared for release to FIRSTNAME LASTNAME on 15 July 2025, 20:00") / coherentpdf.textWidth(coherentpdf.helveticaBold, markText);
@@ -935,29 +1117,28 @@ const model = (() => {
       var overlayPdf = overlay_pdfs[0];
     }
 
-    let markedPdf = coherentpdf.combinePages(overlayPdf, pdf);
+    const markedPdf = coherentpdf.combinePages(overlayPdf, pdf);
 
-    let pdfOut = coherentpdf.toMemoryEncrypted(markedPdf, encryption, permissions, generatePassword(), "", false, false);
-    let pdfBlob = new Blob([pdfOut], { type: 'application/pdf' });
+    const pdfOut = coherentpdf.toMemoryEncrypted(markedPdf, encryption, permissions, generatePassword(), "", false, false);
+    const pdfBlob = new Blob([pdfOut], { type: 'application/pdf' });
     coherentpdf.deletePdf(pdf);
     coherentpdf.deletePdf(overlayPdf);
     coherentpdf.deletePdf(markedPdf);
 
-    let newFileName = (stamp ? "STAMPED " : "MARKED ") + fileStore.get(storedFileID).metadata.fName;
-    let newFileMetadata = {
+    const newFileName = (stamp ? "STAMPED " : "MARKED ") + metadata.fName;
+    const newFileMetadata = {
       parentFile: storedFileID,
       parentAction: stamp ? 'stamp' : 'mark',
       protectiveText: markText
     };
 
-    let newFileID = await storeFile(new File([pdfBlob], newFileName), newFileMetadata);
+    const newFileID = await storeFile(new File([pdfBlob], newFileName), newFileMetadata);
 
     fireEvent((stamp ? 'pdf-stamp' : 'pdf-mark'), { input: storedFileID, output: newFileID });
     fireEvent('proccessing-end', { processID: processID, file: storedFileID, process: 'pdf-mark' });
 
     return newFileID;
   }
-
 
   return {
     storeFile,

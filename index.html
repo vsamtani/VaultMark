@@ -16,7 +16,7 @@
 
   <header>
     <h1>VaultMark</h1>
-    <p>Secure &bull; Simple  &bull; On Your Device &bull; Under Your Control</p>
+    <p>Secure &bull; Simple &bull; On Your Device &bull; Under Your Control</p>
     <button class="file-select-button">Select Files</button>
   </header>
 
@@ -73,38 +73,39 @@
 
 
     <div class="card-inputs">
-      <div class="input-group xhidden decrypt-group">
+
+      <div class="input-group hidden" id="open">
         <span class="status-message hidden"></span>
-        <input type="text" id="decrypt-input" placeholder="Enter the password to open it..." />
-        <button>Open</button>
+        <input type="text" id="open-input" placeholder="Enter the password to open it..." />
+        <button id="open">Open</button>
         <a href="#" class="hidden"></a>
       </div>
 
-      <div class="input-group xhidden unprotect-pdf-group">
+      <div class="input-group hidden" id="unprotect">
         <span class="status-message hidden"></span>
-        <input type="text" id="unprotect-pdf-input" placeholder="Enter PDF password ..." />
-        <button>Unprotect</button>
+        <input type="text" id="unprotect-input" placeholder="Enter PDF password ..." />
+        <button id="unprotect">Unprotect</button>
         <a href="#" class="hidden"></a>
       </div>
 
-      <div class="input-group xhidden stamp-pdf-group">
+      <div class="input-group hidden" id="stamp">
         <span class="status-message hidden"></span>
-        <input type="text" id="stamp-pdf-input" placeholder="CONFIDENTIAL" />
-        <button>Stamp</button>
+        <a href="#" class="hidden"></a>
+        <input type="text" id="stamp-input" placeholder="CONFIDENTIAL" />
+        <button id="stamp">Stamp</button>
+      </div>
+
+      <div class="input-group hidden" id="mark">
+        <span class="status-message hidden"></span>
+        <input type="text" id="mark-input" placeholder="Enter recipient name or email..." />
+        <button id="mark">Mark</button>
         <a href="#" class="hidden"></a>
       </div>
 
-      <div class="input-group xhidden mark-pdf-group">
+      <div class="input-group hidden" id="protect">
         <span class="status-message hidden"></span>
-        <input type="text" id="mark-pdf-input" placeholder="Enter recipient name or email..." />
-        <button>Mark</button>
-        <a href="#" class="hidden"></a>
-      </div>
-
-      <div class="input-group xhidden encrypt-group">
-        <span class="status-message hidden"></span>
-        <input type="text" id="encrypt-input" placeholder="Enter the password to protect with..." />
-        <button>Protect</button>
+        <input type="text" id="protect-input" placeholder="Enter the password to protect with..." />
+        <button id="protect">Protect</button>
         <a href="#" class="hidden"></a>
       </div>
     </div>

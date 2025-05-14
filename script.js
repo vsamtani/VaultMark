@@ -828,9 +828,6 @@ const view = (() => {
         group.classList.remove("hidden");
         let b = group.querySelector("button");
         let inp = group.querySelector("input");
-        b.removeAttribute("onclick");
-        inp.removeAttribute("onchange");
-        inp.removeAttribute("onkeypress");
         b.addEventListener("click", (e) => { fireEvent('action', { file: metadata.fileID, action: b.id, input: inp.value }); });
         inp.addEventListener("keypress", (e) => { if (e.key === "Enter") { e.preventDefault(); b.click(); } });
 

@@ -30,6 +30,12 @@ header {
   width: 100%;
 }
 
+#files {
+  display: inherit;
+  flex-direction: inherit;
+  row-gap: inherit;
+}
+
 button.file-select-button {
   display: inline-block;
   position: absolute;
@@ -78,7 +84,7 @@ h2 {
   margin-top: 2rem;
 }
 
-ul {
+/* ul {
   list-style: none;
   padding: 0;
 }
@@ -87,7 +93,7 @@ ul li::before {
   content: '✔';
   margin-right: 0.5rem;
   color: #2e8b57;
-}
+} */
 
 
 .card {
@@ -99,6 +105,7 @@ ul li::before {
   flex-direction: column;
   gap: 0px;
   pointer-events: auto;
+  scroll-margin-top: 8lh;
 }
 
 .card-top {

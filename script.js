@@ -166,7 +166,7 @@ const model = (() => {
 
     // Which actions are available
     let a = [];
-    if (metadata.parentFile == 0) {
+    if (metadata.parentFile == 0 || true) {
       if (metadata.isPDF && !metadata.isEncryptedPDF) a.push('stamp', 'mark');
       if (metadata.isPDF && metadata.isEncryptedPDF && metadata.password) a.push('stamp', 'mark');
       if (metadata.isPDF && !metadata.isEncryptedPDF && metadata.isProtectedPDF) a.push('unprotect');
@@ -175,7 +175,18 @@ const model = (() => {
       if (!metadata.isEncryptedPDF && !metadata.isEncryptedZip) a.push('protect', 'triple-lock');
     };
 
-    metadata.availableActions = new Set(a);
+    // Don't allow a repeat of the action that created this file
+    metadata.availableActions = new Set(a).difference(new Set(metadata.parentAction));
+
+    // Rule out reversals of the action that created this file 
+    if (metadata.parentAction == 'protect') metadata.availableActions.delete('open');
+    if (metadata.parentAction == 'open') metadata.availableActions.delete('protect');
+
+  //  If we've just decrypted it, we're not going to unprotect it
+    if (metadata.parentAction == 'open') metadata.availableActions.delete('unprotect');
+
+    // Unrestricting a PDF is a final action
+    if (metadata.parentAction == 'unprotect') metadata.availableActions = new Set();
 
     fileStore.get(storedFileID).metadata = metadata;
     fireEvent('metadata', { file: storedFileID, metadata: metadata });
@@ -474,14 +485,18 @@ const model = (() => {
       var action = 'unprotect';
       var originStory = `PDF restrictions removed`;
     } else {
-      var pdfOut = coherentpdf.toMemoryEncrypted(pdf, encryption, permissions, generatePassword(), encryption_pw, false, false);
-      var pdfBlob = new Blob([pdfOut], { type: 'application/pdf' });
+      // var pdfOut = coherentpdf.toMemoryEncrypted(pdf, encryption, permissions, generatePassword(), encryption_pw, false, false);
+      // var pdfBlob = new Blob([pdfOut], { type: 'application/pdf' });
       if (encryption_pw == '') {
+        var pdfOut = coherentpdf.toMemory(pdf, false, false);
+        var pdfBlob = new Blob([pdfOut], { type: 'application/pdf' });
         var newFileName = "PASSWORD-REMOVED " + fName;
         var event = 'pdf-decrypt';
         var action = 'open';
         var originStory = `Unlocked with password: <br><strong>${decryption_pw}</strong>`;
       } else {
+        var pdfOut = coherentpdf.toMemoryEncrypted(pdf, encryption, permissions, generatePassword(), encryption_pw, false, false);
+        var pdfBlob = new Blob([pdfOut], { type: 'application/pdf' });
         var newFileName = "PASSWORD-PROTECTED " + fName;
         var event = 'pdf-encrypt';
         var action = 'protect';
@@ -658,10 +673,10 @@ const model = (() => {
     return newFileID;
   }
 
-async function triplelock(storedFileID) {
-  // First protect it, then put it in a zip with the same password, then put that in another zip with the same password
+  async function triplelock(storedFileID) {
+    // First protect it, then put it in a zip with the same password, then put that in another zip with the same password
 
-}
+  }
 
   return {
     addEventListener,
@@ -766,18 +781,165 @@ const view = (() => {
     };
   }
 
+  function createElement(tag, options = {}, children = []) {
+    const el = document.createElement(tag);
 
-  async function displayCard(metadata) {
+    // Set attributes and properties
+    for (const [key, value] of Object.entries(options)) {
+      if (key === 'style' && typeof value === 'object') {
+        Object.assign(el.style, value);
+      } else if (key.startsWith('on') && typeof value === 'function') {
+        el.addEventListener(key.slice(2).toLowerCase(), value);
+      } else if (key === 'class') {
+        el.className = value;
+      } else {
+        el.setAttribute(key, value);
+      }
+    }
+
+    // Append children (text or elements)
+    (Array.isArray(children) ? children : [children]).forEach(child => {
+      if (typeof child === 'string') {
+        el.appendChild(document.createTextNode(child));
+      } else if (child instanceof Node) {
+        el.appendChild(child);
+      }
+    });
+
+    return el;
+  }
+
+  function render(metadata) {
+    // select the relevant node, or create it if doesn't exist
+    let card = document.getElementById('card-id-' + metadata.fileID);
+    if (card === null) {
+      card = createCardNode(metadata)
+    }
+  }
+
+  function createCardNode(metadata) {
+    let existingNode = document.getElementById('card-id-' + metadata.fileID);
+    if (!existingNode) {
+    let node =
+      createElement('div', { class: 'card hidden', id: 'card-id-' + metadata.fileID },
+        [
+          createElement('div', { class: 'card-top' },
+            [
+              createElement('div', { class: 'file-name' },
+                [
+                  createElement('div', { class: 'file-name-text' }),
+                  createElement('div', { class: 'file-name-icons' })
+                ]),
+              createElement('div', { class: 'file-name file-subtext' },
+                [
+                  createElement('div', { class: 'file-name-subtext' })
+                ])
+            ]
+          ),
+          createElement('div', { class: 'card-actions card-inputs', id: 'card-actions-id-' + metadata.fileID },
+
+            metadata.availableActions.values().toArray().map((a) => {
+               return createElement('div', { class: 'input-group hidden' }, 
+                [
+                  createElement('input', { type: 'text', id: `${a}-input` }), 
+                  createElement('button', { id: a }, a)
+                ]) 
+              })
+          )
+        ]
+      )
+
+    }
+
+
+    return node;
+  };
+
+  const domMap = new Map();
+  let rootElement = document.getElementById("files");
+
+
+
+  async function renderHierarchy(metadata) {
+    let li = domMap.get(metadata.fileID);
+    const isNew = !li;
+
+    // Step 1: Create or reuse the <li> element
+    if (!li) {
+      li = document.createElement('li');
+      li.id = `fileID-${metadata.fileID}`;
+      li.dataset.id = metadata.fileID;
+      li.dataset.parentId = metadata.parentFile;
+      li.classList.add("hidden"); // initially hidden
+      // domMap.set(metadata.fileID, li);
+    }
+
+    // Step 2: Update label or contents
+    // li.textContent = metadata.fName || `Item ${metadata.fileID}`;
+    // console.log(createCardNode(metadata));
+    li.appendChild(document.querySelector("div#card-id-" + metadata.fileID).cloneNode(true));
+
+
+    // Step 3: Insert into DOM if it's new
+    if (isNew) {
+      if (metadata.parentFile === 0) {
+        _ensureOuterUL(rootElement).appendChild(li);
+        li.classList.remove("hidden");
+      } else {
+        // const parentLi = domMap.get(metadata.parentFile);
+        const parentLi = rootElement.querySelector(`#fileID-${metadata.parentFile}`);
+        if (parentLi) {
+          _ensureOuterUL(parentLi).appendChild(li);
+          li.classList.remove("hidden");
+        } else {
+          console.log("Inserted an orphaned LI", li)
+          _ensureOuterUL(rootElement).appendChild(li);
+          li.classList.add("hidden orphaned");
+        }
+      }
+    }
+
+    // Step 4: Attach orphaned children waiting for this node
+    for (const childLi of rootElement.getElementsByClassName("orphaned")) {  //domMap.entries()
+      if (
+        childLi.dataset.parentId === String(metadata.fileID) &&
+        childLi.classList.includes("orphaned")
+      ) {
+        _ensureOuterUL(li).appendChild(childLi);
+        childLi.classList.remove("hidden orphaned")
+      }
+    }
+  }
+
+
+  function _ensureOuterUL(el) {
+    let ul = el.querySelector('ul');
+    if (!ul) {
+      ul = document.createElement('ul');
+      el.appendChild(ul);
+    }
+    return ul;
+  }
+
+
+
+
+
+
+  function displayCard(metadata) {
     // display a card for this file
     // if one doesn't exist, clone it.
     document.getElementById("introContent").classList.add("hidden");
 
     let card = document.querySelector("#card-id-" + metadata.fileID);
+    let blankCard;
     if (card === null) {
-      let blankCard = document.querySelector(".card#file-card");
-      card = blankCard.cloneNode(true);
+      let template = document.querySelector(".card#file-card");
+      blankCard = template.cloneNode(true);
+      card = template.cloneNode(true)
+      blankCard = template.cloneNode(true);
       card.id = "card-id-" + metadata.fileID;
-      blankCard.insertAdjacentElement('afterend', card);
+      template.insertAdjacentElement('afterend', card);
     }
 
     // File name
@@ -834,11 +996,17 @@ const view = (() => {
       }
     }
 
+    // Get the browser to scroll the new card into view
+    // This depends on appropriate CSS to work - see card styling
+    card.scrollIntoView({ block: "start", behavior: "smooth" });
+
     // Add a drag and drop listener because we've covered some of the drop zone
     card.addEventListener("dragover", activateDropZone, false);
+
+    return card;
   };
 
-  async function displayChildFile(metadata) {
+  function displayChildFile(metadata) {
     let card = document.querySelector("#card-id-" + metadata.parentFile);
     let group = card.querySelector("div.card-inputs div#" + metadata.parentAction);
     let message = group.querySelector("span.status-message");
@@ -892,7 +1060,7 @@ const view = (() => {
     removeEventListener,
     showInvalidPassword,
     initialise,
-    displayFile
+    displayFile, createCardNode, renderHierarchy
   }
 
 })();
@@ -911,11 +1079,13 @@ view.addEventListener('input-file', (e) => { model.storeFile(e.file, { parentFil
 model.addEventListener('metadata', (e) => {
   // Automated actions, if available and not already done.
   for (action of ['protect', 'unprotect']) {
-    if (e.metadata.availableActions.has(action) && !e.metadata.children.has(action)) {
+    if (e.metadata.availableActions.has(action) && !e.metadata.children.has(action) && e.metadata.parentFile == 0) {
       executeAction(e.metadata.fileID, action, '');
     }
   };
   view.displayFile(e.metadata);
+  view.renderHierarchy(e.metadata);
+
 });
 
 // When the user requests an action to process a file
@@ -924,7 +1094,7 @@ view.addEventListener('action', (e) => { executeAction(e.file, e.action, e.input
 // When a password has been entered and failed
 model.addEventListener('invalid-password', (e) => { view.showInvalidPassword(e.file, e.invalidPassword) });
 
-async function executeAction(storedFileID, action, input) {
+function executeAction(storedFileID, action, input) {
   // we need to decide which model function to call, with the relevant inputs.
   let inputText = input.trim();
   let metadata = model.getFileMetadata(storedFileID);

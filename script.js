@@ -474,14 +474,18 @@ const model = (() => {
       var action = 'unprotect';
       var originStory = `PDF restrictions removed`;
     } else {
-      var pdfOut = coherentpdf.toMemoryEncrypted(pdf, encryption, permissions, generatePassword(), encryption_pw, false, false);
-      var pdfBlob = new Blob([pdfOut], { type: 'application/pdf' });
+      // var pdfOut = coherentpdf.toMemoryEncrypted(pdf, encryption, permissions, generatePassword(), encryption_pw, false, false);
+      // var pdfBlob = new Blob([pdfOut], { type: 'application/pdf' });
       if (encryption_pw == '') {
+        var pdfOut = coherentpdf.toMemory(pdf, false, false);
+        var pdfBlob = new Blob([pdfOut], { type: 'application/pdf' });
         var newFileName = "PASSWORD-REMOVED " + fName;
         var event = 'pdf-decrypt';
         var action = 'open';
         var originStory = `Unlocked with password: <br><strong>${decryption_pw}</strong>`;
       } else {
+        var pdfOut = coherentpdf.toMemoryEncrypted(pdf, encryption, permissions, generatePassword(), encryption_pw, false, false);
+        var pdfBlob = new Blob([pdfOut], { type: 'application/pdf' });
         var newFileName = "PASSWORD-PROTECTED " + fName;
         var event = 'pdf-encrypt';
         var action = 'protect';

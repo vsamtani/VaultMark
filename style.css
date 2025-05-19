@@ -2,12 +2,27 @@
 :root {
   --card-width: 360px;
   --header-height: 10vh;
+  /* Accessible colour scheme */
+  --col-primary: #005A9C;
+  --col-secondary: #767676;
+  --col-accent: #0078D4;
+  --col-success: #107C10;
+  --col-warning: #FFD700;
+  --col-error: #D13438;
+  --col-bgA: #d1f9f1;
+  --col-textA: #232830;
+  --col-bgB:#10131f;
+  --col-textB: #ffffff;
+  --col-surface: #020202;
+  --col-button:#13553a;
+  --col-button-hover: #4db78c;
+  
 }
 
 body {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen,
     Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
-  background-color: #f5f5f7;
+  background-color: var(--col-bgA);
   display: flex;
   justify-content: center;
   align-items: center;
@@ -17,11 +32,17 @@ body {
   row-gap: 20px;
   text-align: center;
   pointer-events: none;
+  color: var(--col-textA);
+  background-image: url(background.png);
+  /* background-blend-mode: difference; */
+  background-size: 200px;
+  background-repeat: repeat;
+  background-attachment: fixed;
 }
 
 header {
-  background-color: #1e1e2f;
-  color: white;
+  background-color: var(--col-bgB);
+  color: var(--col-textB);
   padding: 2rem 1rem;
   text-align: left;
   position: fixed;
@@ -35,8 +56,8 @@ button.file-select-button {
   position: absolute;
   top: 30%;
   right: 5rem;
-  background-color: #2e8b57;
-  color: white;
+  background-color:var(--col-button);
+  color: var(--col-textB);
   border: none;
   padding: 0.75rem 1.5rem;
   text-decoration: none;
@@ -46,6 +67,12 @@ button.file-select-button {
   cursor: pointer;
   pointer-events: auto;
 }
+
+button.file-select-button:hover {
+outline: 2px solid;
+outline-offset: 2px;
+}
+
 
 
 header h1 {
@@ -121,13 +148,14 @@ ul li::before {
 
 .card:hover {
   box-shadow: 0 12px 24px rgba(0, 0, 0, 0.15);
+
 }
 
 /* File name and icon styling */
 .file-name {
   font-size: 18px;
   font-weight: 600;
-  color: #1d1d1f;
+  color: var(--col-textA);
   margin-bottom: 2px;
   display: flex;
   align-items: top;
@@ -140,7 +168,7 @@ ul li::before {
   margin-right: 8px;
   flex-shrink: 0;
   height: 30px;
-  fill: #02104d;
+  fill: var(--col-textA);
   fill-rule: evenodd;
   clip-rule: evenodd;
 }
@@ -180,7 +208,7 @@ input[type="text"] {
   /* Prevents overflow */
   padding: 8px 12px;
   border: 0px solid #ccc;
-  border-bottom: 1px solid #000;
+  border-bottom: 1px solid var(--col-textA);
   font-size: 14px;
 }
 
@@ -189,7 +217,7 @@ input[type="text"]:hover {
   outline: none;
   background-color: #ccc;
   border-radius: 8px;
-  border-bottom: 1px solid #ccc;
+  border-bottom: 0px solid var(--col-textA);
 }
 
 .card button,
@@ -200,12 +228,13 @@ a.save-button:focus {
   /* Fixed size for all buttons */
   flex-shrink: 0;
   padding: 8px 0;
-  background-color: #007aff;
-  color: white;
+  background-color: var(--col-button);
+  color: var(--col-textB);
   border: none;
   border-radius: 8px;
   cursor: pointer;
   font-size: 14px;
+  font-weight: 600;
   text-align: center;
   text-decoration: none;
   font-family: inherit;
@@ -213,17 +242,21 @@ a.save-button:focus {
 
 }
 
-.card button:hover {
-  background-color: #005fcc;
+.card button:hover, 
+a.save-button:hover {
+  /* background-color: var(--col-button-hover); */
+  outline: 2px solid var(--col-button);
+  /* color: var(--col-textA); */
+  outline-offset: 2px;
 }
 
-a.save-button {
+/* a.save-button {
   background-color: #00ffbf;
 }
 
 a.save-button:hover {
   background-color: #005fcc
-}
+} */
 
 /* Status message styling */
 .status-message {
@@ -231,30 +264,11 @@ a.save-button:hover {
   padding: 8px 12px;
   text-align: left;
   font-size: 14px;
-  color: #28a745;
+  color: var(--col-textA);
 }
 
 /* Styling for Drag and Drop Area */
-.drag-area-header {
-  border: none;
-  border-radius: 12px;
-  padding: 0;
-  text-align: center;
-  cursor: pointer;
-  background-color: #d5f5f7d0;
-  transition: background-color 0.3s;
-  width: 100%;
-  position: fixed;
-  top: 0;
-  height: var(--header-height);
-  display: flex;
-  flex-flow: column;
-  align-items: center;
-
-}
-
 .drag-area {
-  border: none;
   position: fixed;
   top: 5vh;
   width: 90%;
@@ -262,47 +276,27 @@ a.save-button:hover {
   z-index: -10;
   pointer-events: auto;
   opacity: 0;
+  border: none;
  }
 
-.drag-area-underlay {
-  border: 0px solid #000;
-  position: fixed;
-  top: 5dvh;
-  width: 90%;
-  height: 90dvh;
-  z-index: -30;
-  pointer-events: auto;
-}
-
 .drag-area.highlight {
+  z-index: 100;
+  pointer-events: auto;
+  opacity: 0.8;
   border: 1px dashed;
+  border-color: purple;
   border-radius: 10px;
   background-color: #e1f4fe;
-  opacity: 0.8;
-  border-color: purple;
   backdrop-filter: blur(6px);
-  /* top: 9%;
-  height: calc(var(--header-height) * 0.82);
-  width: calc(var(--card-width)*1.11); */
   transition: all 0.1s;
-  pointer-events: auto;
-  z-index: 100;
   display: revert;
 }
 
-.drag-area p {
-  margin: 0;
-  color: #007aff;
-  font-size: 16px;
-  user-select: none;
-  text-align: center;
-  width: 100%;
-}
 
 footer {
-  background-color: rgba(30, 30, 47, 0.9);
+  background-color:var(--col-bgB);
   backdrop-filter: blur(6px);
-  color: white;
+  color:var(--col-textB);
   text-align: center;
   padding: 1vh;
   /* padding: 1rem; */
@@ -316,29 +310,10 @@ footer {
 
 nav a {
   margin: 0 1vh;
-  color: #2e8b57;
+  color: var(--col-textB);
   text-decoration: none;
 }
 
-/* Media Query for Mobile */
-@media (max-width: 520px) {
-  .card {
-    width: 90%;
-    padding: 16px;
-  }
-
-  /* Styling for Drag and Drop Area */
-  .drag-area {
-    width: 90%;
-    /* Adjust width to 90% of parent container */
-    padding: 15px;
-    /* Reduce padding for small screens */
-    font-size: 14px;
-    /* Adjust font size for smaller screens */
-    margin-bottom: 20px;
-    /* Space between drag area and card */
-  }
-}
 
 /* Hidden class - placed last to override preceding */
 .hidden {

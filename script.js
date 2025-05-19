@@ -789,14 +789,26 @@ const view = (() => {
     card.querySelector(".file-name-text").textContent = metadata.fName;
 
     // File icons
-    metadata.isPDF && card.querySelector(".file-name svg path#pdf").classList.remove("hidden");
-    metadata.isZip && card.querySelector(".file-name svg path#zip").classList.remove("hidden");
-    !metadata.isZip && !metadata.isPDF && card.querySelector(".file-name svg path#generic").classList.remove("hidden");
+    if (metadata.isPDF) {
+      card.querySelector(".file-name-icons svg#file-type-icon path#pdf").classList.remove("hidden");
+      card.querySelector(".file-name-icons svg#file-type-icon title").innerHTML = "PDF file";
+    }
+    if (metadata.isZip) { 
+      card.querySelector(".file-name-icons svg#file-type-icon path#zip").classList.remove("hidden");
+      card.querySelector(".file-name-icons svg#file-type-icon title").innerHTML = "Zip file";
+    }
+    if (!metadata.isZip && !metadata.isPDF) {
+      card.querySelector(".file-name svg#file-type-icon path#generic").classList.remove("hidden");
+      card.querySelector(".file-name-icons svg#file-type-icon title").innerHTML = "File";
 
-    (metadata.isEncryptedZip || metadata.isEncryptedPDF) ?
-      card.querySelector(".file-name svg path#locked").classList.remove("hidden") :
-      card.querySelector(".file-name svg path#unlocked").classList.remove("hidden");
-
+    } 
+    if (metadata.isEncryptedZip || metadata.isEncryptedPDF) {
+      card.querySelector(".file-name svg#file-lock-icon path#locked").classList.remove("hidden");
+      card.querySelector(".file-name-icons svg#file-lock-icon title").innerHTML = "Locked";
+    } else {
+      card.querySelector(".file-name svg#file-lock-icon path#unlocked").classList.remove("hidden");
+      card.querySelector(".file-name-icons svg#file-lock-icon title").innerHTML = "Not locked";
+    }
     // File subtext 
     let subText =
       (metadata.isPDF ?

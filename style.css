@@ -85,6 +85,7 @@ header h1 {
 header p {
   font-size: 1.125rem;
   margin: 0;
+  max-width: 50%;
 }
 
 

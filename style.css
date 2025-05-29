@@ -16,6 +16,8 @@
   --col-surface: #020202;
   --col-button:#13553a;
   --col-button-hover: #4db78c;
+  --col-save-button: #0078D4;
+
   
 }
 
@@ -221,9 +223,8 @@ input[type="text"]:hover {
 }
 
 .card button,
-a.save-button,
-.card button:focus,
-a.save-button:focus {
+a.save-button
+ {
   width: 80px;
   /* Fixed size for all buttons */
   flex-shrink: 0;
@@ -243,20 +244,22 @@ a.save-button:focus {
 }
 
 .card button:hover, 
-a.save-button:hover {
-  /* background-color: var(--col-button-hover); */
+.card button:focus
+ {
   outline: 2px solid var(--col-button);
-  /* color: var(--col-textA); */
   outline-offset: 2px;
 }
 
-/* a.save-button {
-  background-color: #00ffbf;
+a.save-button {
+  background-color: var(--col-save-button);
 }
 
+a.save-button:focus, 
 a.save-button:hover {
-  background-color: #005fcc
-} */
+  outline: 2px solid var(--col-save-button);
+  outline-offset: 2px;
+  background-color: var(--col-save-button);
+}
 
 /* Status message styling */
 .status-message {

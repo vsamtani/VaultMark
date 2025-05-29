@@ -556,7 +556,7 @@ const model = (() => {
             false,
             false,
             false,
-            0.75,
+            0.40,
             coherentpdf.centreJustify,
             true, false,
             "",

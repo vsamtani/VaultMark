@@ -510,7 +510,7 @@ const model = (() => {
 
   async function markPDF(storedFileID, markText, stamp = false) {
     const processID = crypto.randomUUID();
-    fireEvent('processing-start', { processID: processID, file: storedFileID, process: 'pdf-crypt' });
+    fireEvent('processing-start', { processID: processID, file: storedFileID, process: 'pdf-mark' });
 
     const permissions = [coherentpdf.noAnnot, coherentpdf.noAssemble, coherentpdf.noCopy, coherentpdf.noEdit, coherentpdf.noExtract, coherentpdf.noForms];
     const encryption = coherentpdf.aes256bitisotrue;

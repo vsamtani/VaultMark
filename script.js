@@ -662,10 +662,10 @@ const model = (() => {
     return newFileID;
   }
 
-async function triplelock(storedFileID) {
-  // First protect it, then put it in a zip with the same password, then put that in another zip with the same password
+  async function triplelock(storedFileID) {
+    // First protect it, then put it in a zip with the same password, then put that in another zip with the same password
 
-}
+  }
 
   return {
     addEventListener,
@@ -793,7 +793,7 @@ const view = (() => {
       card.querySelector(".file-name-icons svg#file-type-icon path#pdf").classList.remove("hidden");
       card.querySelector(".file-name-icons svg#file-type-icon title").innerHTML = "PDF file";
     }
-    if (metadata.isZip) { 
+    if (metadata.isZip) {
       card.querySelector(".file-name-icons svg#file-type-icon path#zip").classList.remove("hidden");
       card.querySelector(".file-name-icons svg#file-type-icon title").innerHTML = "Zip file";
     }
@@ -801,7 +801,7 @@ const view = (() => {
       card.querySelector(".file-name svg#file-type-icon path#generic").classList.remove("hidden");
       card.querySelector(".file-name-icons svg#file-type-icon title").innerHTML = "File";
 
-    } 
+    }
     if (metadata.isEncryptedZip || metadata.isEncryptedPDF) {
       card.querySelector(".file-name svg#file-lock-icon path#locked").classList.remove("hidden");
       card.querySelector(".file-name-icons svg#file-lock-icon title").innerHTML = "Locked";
@@ -849,6 +849,10 @@ const view = (() => {
 
       }
     }
+
+    // Get the browser to scroll the new card into view
+    // This depends on appropriate CSS to work - see card styling
+    card.scrollIntoView({ block: "start", behavior: "smooth" });
 
     // Add a drag and drop listener because we've covered some of the drop zone
     card.addEventListener("dragover", activateDropZone, false);
